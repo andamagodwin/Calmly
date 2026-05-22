@@ -1,19 +1,25 @@
 package app.andama.calmly.navigation
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import app.andama.calmly.screens.*
+import app.andama.calmly.service.OverlayService
+import app.andama.calmly.screens.checkOverlayPermission
 
 @Composable
 fun CalmlyNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    
     NavHost(
         navController = navController,
         startDestination = Screen.Home.route,
@@ -21,15 +27,35 @@ fun CalmlyNavHost(
     ) {
         composable(Screen.Home.route) {
             HomeScreen(
-                onOverwhelmClick = { navController.navigate(Screen.Delay.route) },
+                onOverwhelmClick = {
+                    if (checkOverlayPermission(context)) {
+                        OverlayService.startService(context)
+                        navController.navigate(Screen.Delay.route)
+                    } else {
+                        navController.navigate(Screen.PermissionRequest.route)
+                    }
+                },
                 onNightResetClick = { navController.navigate(Screen.NightReset.route) }
+            )
+        }
+        
+        composable(Screen.PermissionRequest.route) {
+            PermissionRequestScreen(
+                onPermissionGranted = {
+                    OverlayService.startService(context)
+                    navController.navigate(Screen.Delay.route) { popUpTo(Screen.Home.route) }
+                },
+                onBack = { navController.popBackStack() }
             )
         }
         
         composable(Screen.Delay.route) {
             DelayScreen(
                 onNext = { navController.navigate(Screen.Breathing.route) },
-                onBack = { navController.popBackStack() }
+                onBack = {
+                    OverlayService.stopService(context)
+                    navController.popBackStack()
+                }
             )
         }
         
@@ -56,7 +82,10 @@ fun CalmlyNavHost(
         
         composable(Screen.CalmCompletion.route) {
             CalmCompletionScreen(
-                onBackToHome = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Home.route) } }
+                onBackToHome = {
+                    OverlayService.stopService(context)
+                    navController.navigate(Screen.Home.route) { popUpTo(Screen.Home.route) }
+                }
             )
         }
         
