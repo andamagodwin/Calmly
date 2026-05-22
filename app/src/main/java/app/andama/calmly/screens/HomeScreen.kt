@@ -21,6 +21,7 @@ fun HomeScreen(
     onOverwhelmClick: () -> Unit,
     onUrgeClick: () -> Unit,
     onNightResetClick: () -> Unit,
+    onAlarmClick: () -> Unit,
     onAchievementsClick: () -> Unit
 ) {
     Box(
@@ -146,7 +147,32 @@ fun HomeScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            OutlinedButton(
+                onClick = onAlarmClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .clip(RoundedCornerShape(24.dp)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = WarningAmber
+                ),
+                border = ButtonDefaults.outlinedButtonBorder.copy(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(WarningAmber, BrutalOrange)
+                    )
+                )
+            ) {
+                Text(
+                    text = "Wake-Up Alarm (QR)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = WarningAmber,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = "You have the power to choose differently.",
@@ -156,7 +182,7 @@ fun HomeScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             TextButton(
                 onClick = onAchievementsClick,

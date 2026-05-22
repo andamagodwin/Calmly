@@ -13,4 +13,5 @@ sealed class Screen(val route: String) {
     object UrgeHit : Screen("urge_hit")
     object Accountability : Screen("accountability")
     object UrgeComplete : Screen("urge_complete")
+    object AlarmSetup : Screen("alarm_setup")
 }

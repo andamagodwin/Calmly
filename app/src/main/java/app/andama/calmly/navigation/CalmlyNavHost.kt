@@ -40,6 +40,7 @@ fun CalmlyNavHost(
                     }
                 },
                 onNightResetClick = { navController.navigate(Screen.NightReset.route) },
+                onAlarmClick = { navController.navigate(Screen.AlarmSetup.route) },
                 onAchievementsClick = { navController.navigate(Screen.Achievements.route) }
             )
         }
@@ -142,6 +143,12 @@ fun CalmlyNavHost(
                     OverlayService.stopService(context)
                     navController.navigate(Screen.Home.route) { popUpTo(Screen.Home.route) }
                 }
+            )
+        }
+
+        composable(Screen.AlarmSetup.route) {
+            AlarmSetupScreen(
+                onBack = { navController.popBackStack() }
             )
         }
     }
