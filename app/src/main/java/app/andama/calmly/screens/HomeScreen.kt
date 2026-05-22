@@ -19,6 +19,7 @@ import app.andama.calmly.ui.theme.*
 @Composable
 fun HomeScreen(
     onOverwhelmClick: () -> Unit,
+    onUrgeClick: () -> Unit,
     onNightResetClick: () -> Unit,
     onAchievementsClick: () -> Unit
 ) {
@@ -31,7 +32,7 @@ fun HomeScreen(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(32.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
@@ -42,15 +43,14 @@ fun HomeScreen(
                 color = TextPrimary,
                 letterSpacing = 2.sp
             )
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Main button - I feel overwhelmed
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             Button(
                 onClick = onOverwhelmClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
+                    .height(100.dp)
                     .clip(RoundedCornerShape(24.dp)),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Transparent
@@ -70,20 +70,62 @@ fun HomeScreen(
                     Text(
                         text = "I feel overwhelmed",
                         style = MaterialTheme.typography.headlineMedium,
-                        fontSize = 24.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Medium,
                         color = TextPrimary,
                         textAlign = TextAlign.Center
                     )
                 }
             }
-            
-            // Secondary button - Night Reset
+
+            Button(
+                onClick = onUrgeClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .clip(RoundedCornerShape(24.dp)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent
+                ),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(DangerRed, BrutalOrange)
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "I'm having an urge",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "Lock me down now",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontSize = 14.sp,
+                            color = TextPrimary.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
             OutlinedButton(
                 onClick = onNightResetClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp)
+                    .height(80.dp)
                     .clip(RoundedCornerShape(24.dp)),
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = PrimaryBlue
@@ -103,19 +145,19 @@ fun HomeScreen(
                     textAlign = TextAlign.Center
                 )
             }
-            
-            Spacer(modifier = Modifier.height(48.dp))
-            
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             Text(
-                text = "Take a moment. Breathe.",
+                text = "You have the power to choose differently.",
                 style = MaterialTheme.typography.bodyLarge,
                 fontSize = 16.sp,
                 color = TextSecondary,
                 textAlign = TextAlign.Center
             )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             TextButton(
                 onClick = onAchievementsClick,
                 modifier = Modifier.fillMaxWidth()

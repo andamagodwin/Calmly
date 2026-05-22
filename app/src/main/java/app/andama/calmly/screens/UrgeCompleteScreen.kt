@@ -21,33 +21,36 @@ import app.andama.calmly.ui.theme.*
 import kotlinx.coroutines.launch
 
 @Composable
-fun CalmCompletionScreen(
+fun UrgeCompleteScreen(
     onBackToHome: () -> Unit
 ) {
     val context = LocalContext.current
     val achievementManager = remember { AchievementManager(context) }
     val scope = rememberCoroutineScope()
-    var encouragement by remember { mutableStateOf("") }
+    var urgesResisted by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         scope.launch {
+            achievementManager.recordUrgeResisted()
             achievementManager.recordSession()
-            encouragement = achievementManager.getEncouragementMessage()
+            achievementManager.achievementData.collect { data ->
+                urgesResisted = data.urgesResisted
+            }
         }
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val infiniteTransition = rememberInfiniteTransition(label = "victory")
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.1f,
+        targetValue = 1.15f,
         animationSpec = infiniteRepeatable(
             animation = tween(
-                durationMillis = 2000,
+                durationMillis = 1500,
                 easing = FastOutSlowInEasing
             ),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "pulse"
+        label = "victory_pulse"
     )
 
     Box(
@@ -59,7 +62,7 @@ fun CalmCompletionScreen(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(28.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             Box(
@@ -69,8 +72,8 @@ fun CalmCompletionScreen(
                     .background(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                SuccessGreen.copy(alpha = 0.4f),
-                                AccentGradientEnd.copy(alpha = 0.2f),
+                                SuccessGreen.copy(alpha = 0.5f),
+                                PrimaryBlue.copy(alpha = 0.2f),
                                 SoftBackground
                             )
                         )
@@ -79,56 +82,77 @@ fun CalmCompletionScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "✓",
-                    style = MaterialTheme.typography.displayLarge,
-                    fontSize = 64.sp,
-                    fontWeight = FontWeight.Light,
-                    color = SuccessGreen
+                    text = "💪",
+                    fontSize = 56.sp
                 )
             }
 
             Text(
-                text = "You stayed with yourself.",
-                style = MaterialTheme.typography.headlineMedium,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
+                text = "You just beat it.",
+                style = MaterialTheme.typography.headlineLarge,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Black,
+                color = SuccessGreen,
                 textAlign = TextAlign.Center
             )
 
             Text(
-                text = "The storm passed. You didn't break.",
+                text = "The urge came. You didn't break.",
                 style = MaterialTheme.typography.titleLarge,
                 fontSize = 20.sp,
-                fontWeight = FontWeight.Light,
-                color = TextSecondary,
+                fontWeight = FontWeight.Medium,
+                color = TextPrimary,
                 textAlign = TextAlign.Center
             )
 
-            if (encouragement.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = CardBackground
-                    )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = CardBackground
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(
-                        modifier = Modifier.padding(20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = encouragement,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = PrimaryBlue,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    Text(
+                        text = "Urges Defeated",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontSize = 14.sp,
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = "$urgesResisted",
+                        style = MaterialTheme.typography.displayMedium,
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = SuccessGreen
+                    )
+                    Text(
+                        text = "Every single one made you stronger.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontSize = 14.sp,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Remember this feeling.\nThis is what winning feels like.",
+                style = MaterialTheme.typography.bodyLarge,
+                fontSize = 16.sp,
+                color = PrimaryBlue,
+                textAlign = TextAlign.Center,
+                lineHeight = 24.sp
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             Button(
                 onClick = onBackToHome,
@@ -136,14 +160,13 @@ fun CalmCompletionScreen(
                     .fillMaxWidth()
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = SuccessGreen
+                    containerColor = PrimaryBlue
                 )
             ) {
                 Text(
                     text = "Back to Home",
                     style = MaterialTheme.typography.titleMedium,
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
                     color = TextPrimary
                 )
             }

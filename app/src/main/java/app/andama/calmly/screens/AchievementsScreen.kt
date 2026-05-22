@@ -2,7 +2,9 @@ package app.andama.calmly.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.andama.calmly.achievements.AchievementManager
 import app.andama.calmly.ui.theme.*
-import kotlinx.coroutines.launch
 
 @Composable
 fun AchievementsScreen(
@@ -22,41 +23,41 @@ fun AchievementsScreen(
 ) {
     val context = LocalContext.current
     val achievementManager = remember { AchievementManager(context) }
-    val scope = rememberCoroutineScope()
-    
+
     var achievementData by remember { mutableStateOf<AchievementManager.AchievementData?>(null) }
-    var encouragement by remember { mutableStateOf("") }
-    
+
     LaunchedEffect(Unit) {
         achievementManager.achievementData.collect { data ->
             achievementData = data
         }
-        encouragement = achievementManager.getEncouragementMessage()
     }
-    
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(DeepBackground)
             .padding(24.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.TopCenter
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            modifier = Modifier.fillMaxWidth()
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
         ) {
+            Spacer(modifier = Modifier.height(24.dp))
+
             Text(
-                text = "Your Journey",
+                text = "Your War Record",
                 style = MaterialTheme.typography.headlineMedium,
                 fontSize = 32.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.Bold,
                 color = TextPrimary,
                 textAlign = TextAlign.Center
             )
-            
+
             if (achievementData != null) {
-                // Stats cards
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -64,65 +65,63 @@ fun AchievementsScreen(
                     StatCard(
                         modifier = Modifier.weight(1f),
                         title = "Sessions",
-                        value = achievementData!!.totalSessions.toString()
+                        value = achievementData!!.totalSessions.toString(),
+                        color = PrimaryBlue
                     )
                     StatCard(
                         modifier = Modifier.weight(1f),
                         title = "Streak",
-                        value = "${achievementData!!.currentStreak} days"
+                        value = "${achievementData!!.currentStreak}d",
+                        color = PrimaryBlue
                     )
                 }
-                
-                // Encouragement message
-                Card(
+
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = CardBackground
-                    )
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = encouragement,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontSize = 18.sp,
-                            color = PrimaryBlue,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Urges Beaten",
+                        value = achievementData!!.urgesResisted.toString(),
+                        color = SuccessGreen
+                    )
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Best Streak",
+                        value = "${achievementData!!.longestStreak}d",
+                        color = WarningAmber
+                    )
                 }
-                
-                // Milestones
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = "Milestones",
                     style = MaterialTheme.typography.titleLarge,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
                     color = TextPrimary
                 )
-                
+
                 val milestones = listOf(
-                    Pair("10 Sessions", achievementData!!.milestones["10_sessions"] ?: false),
-                    Pair("50 Sessions", achievementData!!.milestones["50_sessions"] ?: false),
-                    Pair("100 Sessions", achievementData!!.milestones["100_sessions"] ?: false),
-                    Pair("7 Day Streak", achievementData!!.milestones["7_days_streak"] ?: false),
-                    Pair("30 Day Streak", achievementData!!.milestones["30_days_streak"] ?: false)
+                    "10 Sessions" to (achievementData!!.milestones["10_sessions"] ?: false),
+                    "50 Sessions" to (achievementData!!.milestones["50_sessions"] ?: false),
+                    "100 Sessions" to (achievementData!!.milestones["100_sessions"] ?: false),
+                    "7 Day Streak" to (achievementData!!.milestones["7_days_streak"] ?: false),
+                    "30 Day Streak" to (achievementData!!.milestones["30_days_streak"] ?: false),
+                    "10 Urges Defeated" to (achievementData!!.milestones["10_urges_resisted"] ?: false),
+                    "50 Urges Defeated" to (achievementData!!.milestones["50_urges_resisted"] ?: false),
+                    "100 Urges Defeated" to (achievementData!!.milestones["100_urges_resisted"] ?: false)
                 )
-                
-                milestones.forEach { milestone ->
-                    MilestoneCard(
-                        name = milestone.first,
-                        achieved = milestone.second
-                    )
+
+                milestones.forEach { (name, achieved) ->
+                    MilestoneCard(name = name, achieved = achieved)
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             TextButton(
                 onClick = onBack,
                 modifier = Modifier.fillMaxWidth()
@@ -133,6 +132,8 @@ fun AchievementsScreen(
                     color = TextSecondary
                 )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
@@ -141,10 +142,12 @@ fun AchievementsScreen(
 fun StatCard(
     modifier: Modifier = Modifier,
     title: String,
-    value: String
+    value: String,
+    color: androidx.compose.ui.graphics.Color = PrimaryBlue
 ) {
     Card(
         modifier = modifier.height(100.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = CardBackground
         )
@@ -161,7 +164,7 @@ fun StatCard(
                 style = MaterialTheme.typography.headlineMedium,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                color = PrimaryBlue
+                color = color
             )
             Text(
                 text = title,
@@ -181,7 +184,8 @@ fun MilestoneCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp),
+            .height(56.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (achieved) CardBackground else SoftBackground
         )
@@ -189,24 +193,32 @@ fun MilestoneCard(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = name,
                 style = MaterialTheme.typography.titleMedium,
-                fontSize = 18.sp,
-                fontWeight = if (achieved) FontWeight.Medium else FontWeight.Normal,
-                color = if (achieved) PrimaryBlue else TextSecondary
+                fontSize = 16.sp,
+                fontWeight = if (achieved) FontWeight.Bold else FontWeight.Normal,
+                color = if (achieved) SuccessGreen else TextSecondary
             )
-            
+
             if (achieved) {
                 Text(
                     text = "✓",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontSize = 24.sp,
-                    color = PrimaryBlue
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = SuccessGreen
+                )
+            } else {
+                Text(
+                    text = "—",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontSize = 22.sp,
+                    color = CalmGrey
                 )
             }
         }

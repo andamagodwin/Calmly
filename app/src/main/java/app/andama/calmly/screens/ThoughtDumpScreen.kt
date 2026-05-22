@@ -19,7 +19,8 @@ fun ThoughtDumpScreen(
     onBack: () -> Unit
 ) {
     var thoughtText by remember { mutableStateOf("") }
-    
+    var hasWrittenEnough by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -29,32 +30,33 @@ fun ThoughtDumpScreen(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                text = "Write everything on your mind",
+                text = "Get it out of your head.",
                 style = MaterialTheme.typography.headlineMedium,
                 fontSize = 28.sp,
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.Bold,
                 color = TextPrimary,
                 textAlign = TextAlign.Center
             )
-            
+
             Text(
-                text = "Don't send it anywhere. This is just for you.",
+                text = "Write what triggered you. What you're feeling.\nThis never gets stored or sent anywhere.",
                 style = MaterialTheme.typography.bodyLarge,
-                fontSize = 18.sp,
+                fontSize = 16.sp,
                 color = TextSecondary,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                lineHeight = 24.sp
             )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(300.dp),
+                    .height(280.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = CardBackground
@@ -62,7 +64,10 @@ fun ThoughtDumpScreen(
             ) {
                 TextField(
                     value = thoughtText,
-                    onValueChange = { thoughtText = it },
+                    onValueChange = {
+                        thoughtText = it
+                        hasWrittenEnough = it.length >= 20
+                    },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp),
@@ -76,43 +81,43 @@ fun ThoughtDumpScreen(
                     ),
                     placeholder = {
                         Text(
-                            text = "Start writing...",
+                            text = "What's going on in your head right now?",
                             color = TextSecondary
                         )
                     },
                     textStyle = MaterialTheme.typography.bodyLarge
                 )
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
+
+            if (!hasWrittenEnough) {
+                Text(
+                    text = "Write something real. Don't skip this.",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 14.sp,
+                    color = CalmGrey,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Button(
                 onClick = onNext,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
+                enabled = hasWrittenEnough,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryBlue
+                    containerColor = PrimaryBlue,
+                    disabledContainerColor = CalmGrey
                 )
             ) {
                 Text(
-                    text = "Continue",
+                    text = "Done. Move on.",
                     style = MaterialTheme.typography.titleMedium,
                     fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
                     color = TextPrimary
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            TextButton(
-                onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Go back",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary
                 )
             }
         }
