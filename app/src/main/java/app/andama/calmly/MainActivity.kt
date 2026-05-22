@@ -14,6 +14,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import app.andama.calmly.alarm.AlarmActivity
+import app.andama.calmly.alarm.AlarmService
 import app.andama.calmly.data.CalmlyTracker
 import app.andama.calmly.navigation.CalmlyNavHost
 import app.andama.calmly.service.OverlayService
@@ -27,6 +29,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        if (redirectToAlarmIfRinging()) return
 
         scheduleQuoteNotifications()
         checkDangerHours()
@@ -58,6 +62,18 @@ class MainActivity : ComponentActivity() {
             4 * 60 * 60 * 1000L,
             pendingIntent
         )
+    }
+
+    private fun redirectToAlarmIfRinging(): Boolean {
+        if (AlarmService.isRinging) {
+            val intent = Intent(this, AlarmActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            startActivity(intent)
+            finish()
+            return true
+        }
+        return false
     }
 
     private fun checkDangerHours() {

@@ -1,13 +1,7 @@
 package app.andama.calmly.alarm
 
-import android.media.AudioAttributes
-import android.media.MediaPlayer
-import android.media.RingtoneManager
 import android.os.Build
 import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -29,9 +23,6 @@ import kotlinx.coroutines.launch
 
 class AlarmActivity : ComponentActivity() {
 
-    private var mediaPlayer: MediaPlayer? = null
-    private var vibrator: Vibrator? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -44,8 +35,8 @@ class AlarmActivity : ComponentActivity() {
                     WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON
         )
 
-        startAlarmSound()
-        startVibration()
+        // Start the foreground service for persistent alarm sound
+        AlarmService.start(this)
 
         val alarmScheduler = AlarmScheduler(this)
 
@@ -84,46 +75,8 @@ class AlarmActivity : ComponentActivity() {
         }
     }
 
-    private fun startAlarmSound() {
-        try {
-            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-            mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-                setDataSource(this@AlarmActivity, alarmUri)
-                isLooping = true
-                prepare()
-                start()
-            }
-        } catch (_: Exception) {}
-    }
-
-    private fun startVibration() {
-        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vibratorManager.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            getSystemService(VIBRATOR_SERVICE) as Vibrator
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val pattern = longArrayOf(0, 800, 200, 800, 200, 800, 500)
-            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator?.vibrate(longArrayOf(0, 800, 200, 800, 200, 800, 500), 0)
-        }
-    }
-
     private fun dismissAlarm() {
-        stopAlarmSound()
-        stopVibration()
+        AlarmService.stop(this)
         val scheduler = AlarmScheduler(this)
         CoroutineScope(Dispatchers.IO).launch {
             val alarmTime = scheduler.getAlarmTime()
@@ -132,25 +85,6 @@ class AlarmActivity : ComponentActivity() {
             }
         }
         finish()
-    }
-
-    private fun stopAlarmSound() {
-        mediaPlayer?.apply {
-            if (isPlaying) stop()
-            release()
-        }
-        mediaPlayer = null
-    }
-
-    private fun stopVibration() {
-        vibrator?.cancel()
-        vibrator = null
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        stopAlarmSound()
-        stopVibration()
     }
 
     @Deprecated("Use onBackInvokedCallback")
@@ -198,11 +132,12 @@ fun AlarmScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "There is NO other way to stop this alarm.",
+                text = "There is NO other way to stop this alarm.\nSwitching apps won't help.",
                 style = MaterialTheme.typography.bodyLarge,
                 fontSize = 16.sp,
                 color = WarningAmber,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                lineHeight = 24.sp
             )
 
             Spacer(modifier = Modifier.height(24.dp))
