@@ -11,16 +11,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.andama.calmly.achievements.AchievementManager
 import app.andama.calmly.ui.theme.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun CalmCompletionScreen(
     onBackToHome: () -> Unit
 ) {
+    val context = LocalContext.current
+    val achievementManager = remember { AchievementManager(context) }
+    val scope = rememberCoroutineScope()
+    var encouragement by remember { mutableStateOf("") }
+    
+    LaunchedEffect(Unit) {
+        scope.launch {
+            achievementManager.recordSession()
+            encouragement = achievementManager.getEncouragementMessage()
+        }
+    }
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -90,6 +104,28 @@ fun CalmCompletionScreen(
                 color = TextSecondary,
                 textAlign = TextAlign.Center
             )
+            
+            if (encouragement.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = CardBackground
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier.padding(20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = encouragement,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontSize = 18.sp,
+                            color = PrimaryBlue,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
             
             Spacer(modifier = Modifier.height(48.dp))
             

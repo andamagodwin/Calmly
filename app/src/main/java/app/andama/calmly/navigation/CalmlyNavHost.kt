@@ -35,7 +35,14 @@ fun CalmlyNavHost(
                         navController.navigate(Screen.PermissionRequest.route)
                     }
                 },
-                onNightResetClick = { navController.navigate(Screen.NightReset.route) }
+                onNightResetClick = { navController.navigate(Screen.NightReset.route) },
+                onAchievementsClick = { navController.navigate(Screen.Achievements.route) }
+            )
+        }
+        
+        composable(Screen.Achievements.route) {
+            AchievementsScreen(
+                onBack = { navController.popBackStack() }
             )
         }
         

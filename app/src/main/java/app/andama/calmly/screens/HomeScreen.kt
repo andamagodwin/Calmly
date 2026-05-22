@@ -19,7 +19,8 @@ import app.andama.calmly.ui.theme.*
 @Composable
 fun HomeScreen(
     onOverwhelmClick: () -> Unit,
-    onNightResetClick: () -> Unit
+    onNightResetClick: () -> Unit,
+    onAchievementsClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -112,6 +113,19 @@ fun HomeScreen(
                 color = TextSecondary,
                 textAlign = TextAlign.Center
             )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            TextButton(
+                onClick = onAchievementsClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "View Achievements",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PrimaryBlue
+                )
+            }
         }
     }
 }
