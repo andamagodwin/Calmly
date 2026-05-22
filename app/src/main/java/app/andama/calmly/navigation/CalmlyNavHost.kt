@@ -6,8 +6,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import app.andama.calmly.data.CalmlyTracker
 import app.andama.calmly.screens.*
 import app.andama.calmly.service.OverlayService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun CalmlyNavHost(
@@ -34,6 +38,15 @@ fun CalmlyNavHost(
                 onUrgeClick = {
                     if (checkOverlayPermission(context)) {
                         OverlayService.startService(context, durationMs = 15 * 60 * 1000L, mode = "urge")
+                        // Send accountability text if enabled
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val tracker = CalmlyTracker(context)
+                            val partner = tracker.getAccountabilityPartner()
+                            if (partner != null && partner.third) {
+                                sendAccountabilityText(context, partner.first, partner.second)
+                            }
+                            tracker.logTrigger("Urge button pressed")
+                        }
                         navController.navigate(Screen.UrgeHit.route)
                     } else {
                         navController.navigate(Screen.PermissionRequest.route)
@@ -41,6 +54,11 @@ fun CalmlyNavHost(
                 },
                 onNightResetClick = { navController.navigate(Screen.NightReset.route) },
                 onAlarmClick = { navController.navigate(Screen.AlarmSetup.route) },
+                onDailyCheckinClick = { navController.navigate(Screen.DailyCheckin.route) },
+                onTriggerTrackerClick = { navController.navigate(Screen.TriggerTracker.route) },
+                onRelapseClick = { navController.navigate(Screen.Relapse.route) },
+                onDangerHoursClick = { navController.navigate(Screen.DangerHours.route) },
+                onPartnerClick = { navController.navigate(Screen.Partner.route) },
                 onAchievementsClick = { navController.navigate(Screen.Achievements.route) }
             )
         }
@@ -148,6 +166,36 @@ fun CalmlyNavHost(
 
         composable(Screen.AlarmSetup.route) {
             AlarmSetupScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.DailyCheckin.route) {
+            DailyCheckinScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.TriggerTracker.route) {
+            TriggerTrackerScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Relapse.route) {
+            RelapseScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.DangerHours.route) {
+            DangerHoursScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Partner.route) {
+            PartnerScreen(
                 onBack = { navController.popBackStack() }
             )
         }
