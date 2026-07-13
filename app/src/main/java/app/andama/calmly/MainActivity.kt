@@ -21,13 +21,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.rememberNavController
 import app.andama.calmly.alarm.AlarmActivity
 import app.andama.calmly.alarm.AlarmService
+import app.andama.calmly.data.CalmlyTracker
 import app.andama.calmly.navigation.CalmlyNavHost
+import app.andama.calmly.navigation.Screen
 import app.andama.calmly.service.DailyReminders
 import app.andama.calmly.service.QuoteReceiver
 import app.andama.calmly.ui.theme.CalmlyTheme
+import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
 
@@ -35,6 +39,7 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -43,6 +48,16 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermission()
         scheduleQuoteNotifications()
         DailyReminders.scheduleIfNeeded(this)
+
+        // One tiny synchronous read at startup, while the splash screen is still
+        // covering the window — the graph needs its start destination up front.
+        val startDestination = runBlocking {
+            if (CalmlyTracker(this@MainActivity).getUserName() == null) {
+                Screen.Onboarding.route
+            } else {
+                Screen.Home.route
+            }
+        }
 
         setContent {
             CalmlyTheme {
@@ -55,7 +70,10 @@ class MainActivity : ComponentActivity() {
                     // consumes the insets for the whole graph.
                     Box(modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
                         val navController = rememberNavController()
-                        CalmlyNavHost(navController = navController)
+                        CalmlyNavHost(
+                            navController = navController,
+                            startDestination = startDestination
+                        )
                     }
                 }
             }

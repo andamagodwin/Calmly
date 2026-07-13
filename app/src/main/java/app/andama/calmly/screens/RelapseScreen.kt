@@ -1,5 +1,6 @@
 package app.andama.calmly.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,10 +11,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.andama.calmly.R
 import app.andama.calmly.data.CalmlyTracker
 import app.andama.calmly.data.RelapseEntry
 import app.andama.calmly.ui.theme.*
@@ -56,6 +59,12 @@ fun RelapseScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(16.dp))
+
+            Image(
+                painter = painterResource(R.drawable.mascot_comfort),
+                contentDescription = "Cal offering a hug — a reset is not the end",
+                modifier = Modifier.size(110.dp)
+            )
 
             Text(
                 text = "Relapse Log",

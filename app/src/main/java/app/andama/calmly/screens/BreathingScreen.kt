@@ -1,6 +1,7 @@
 package app.andama.calmly.screens
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -11,10 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.andama.calmly.R
 import app.andama.calmly.ui.theme.*
 import kotlinx.coroutines.delay
 
@@ -91,13 +94,20 @@ fun BreathingScreen(
                     .scale(scale),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = breathText,
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Light,
-                    color = TextPrimary
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Image(
+                        painter = painterResource(R.drawable.mascot_meditate),
+                        contentDescription = null,
+                        modifier = Modifier.size(72.dp)
+                    )
+                    Text(
+                        text = breathText,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Light,
+                        color = TextPrimary
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(48.dp))

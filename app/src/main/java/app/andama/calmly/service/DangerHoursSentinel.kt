@@ -95,7 +95,7 @@ object DangerHoursSentinel {
         OverlayService.startService(context, durationMs = LOCK_DURATION_MS, mode = "urge")
     }
 
-    fun showWindowOpenNotification(context: Context) {
+    fun showWindowOpenNotification(context: Context, name: String? = null) {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -127,8 +127,9 @@ object DangerHoursSentinel {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val who = name?.let { "$it, your" } ?: "Your"
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle("Your danger window just opened")
+            .setContentTitle("$who danger window just opened")
             .setContentText("This is the hour that usually wins. Not tonight. Lock down before it starts.")
             .setStyle(
                 NotificationCompat.BigTextStyle().bigText(
@@ -156,9 +157,10 @@ class DangerHoursReceiver : BroadcastReceiver() {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         // Settings may have been disabled since the alarm was armed.
-                        val dangerHours = CalmlyTracker(context).getDangerHours()
+                        val tracker = CalmlyTracker(context)
+                        val dangerHours = tracker.getDangerHours()
                         if (dangerHours != null && dangerHours.third) {
-                            DangerHoursSentinel.showWindowOpenNotification(context)
+                            DangerHoursSentinel.showWindowOpenNotification(context, tracker.getUserName())
                         }
                         DangerHoursSentinel.reschedule(context)
                     } finally {

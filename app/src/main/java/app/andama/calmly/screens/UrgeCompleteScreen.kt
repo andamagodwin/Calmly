@@ -1,6 +1,7 @@
 package app.andama.calmly.screens
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -12,10 +13,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.andama.calmly.R
 import app.andama.calmly.achievements.AchievementManager
 import app.andama.calmly.ui.theme.*
 import kotlinx.coroutines.launch
@@ -81,9 +84,10 @@ fun UrgeCompleteScreen(
                     .scale(scale),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "💪",
-                    fontSize = 56.sp
+                Image(
+                    painter = painterResource(R.drawable.mascot_flex),
+                    contentDescription = "Cal flexing — you beat the urge",
+                    modifier = Modifier.size(104.dp)
                 )
             }
 

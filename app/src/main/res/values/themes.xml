@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Calmly" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Calmly" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/calmly_deep_background</item>
+    </style>
+
+    <!-- Shown while the app process starts; hands off to Theme.Calmly. -->
+    <style name="Theme.Calmly.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/calmly_deep_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_mascot</item>
+        <item name="postSplashScreenTheme">@style/Theme.Calmly</item>
+    </style>
 </resources>

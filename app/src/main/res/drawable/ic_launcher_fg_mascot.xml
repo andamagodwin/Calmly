@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive-icon foregrounds are masked to the inner 66/108 of the canvas;
+     the inset keeps the whole mascot inside every launcher's mask shape. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/mascot_neutral"
+    android:inset="20%" />

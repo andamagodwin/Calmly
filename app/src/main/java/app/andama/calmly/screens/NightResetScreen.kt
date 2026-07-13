@@ -1,5 +1,6 @@
 package app.andama.calmly.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -7,10 +8,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.andama.calmly.R
 import app.andama.calmly.ui.theme.*
 
 @Composable
@@ -39,6 +42,12 @@ fun NightResetScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
+            Image(
+                painter = painterResource(R.drawable.mascot_sleep),
+                contentDescription = null,
+                modifier = Modifier.size(110.dp)
+            )
+
             Text(
                 text = "Night Reset",
                 style = MaterialTheme.typography.headlineMedium,

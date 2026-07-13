@@ -34,7 +34,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.Calmly"
+            android:theme="@style/Theme.Calmly.Starting"
             android:launchMode="singleTask"
             android:taskAffinity="">
             <intent-filter>

@@ -32,6 +32,7 @@ object TrackerKeys {
     val PARTNER_PHONE = stringPreferencesKey("partner_phone")
     val PARTNER_ENABLED = stringPreferencesKey("partner_enabled")
     val LAST_CHECKIN_DATE = stringPreferencesKey("last_checkin_date")
+    val USER_NAME = stringPreferencesKey("user_name")
 }
 
 data class MoodEntry(
@@ -300,6 +301,19 @@ class CalmlyTracker(private val context: Context) {
         val phone = data[TrackerKeys.PARTNER_PHONE] ?: return null
         val enabled = data[TrackerKeys.PARTNER_ENABLED] == "true"
         return Triple(name, phone, enabled)
+    }
+
+    suspend fun setUserName(name: String) {
+        context.trackerDataStore.edit { prefs ->
+            prefs[TrackerKeys.USER_NAME] = name.trim()
+        }
+    }
+
+    /** Null until onboarding has run. */
+    suspend fun getUserName(): String? {
+        return context.trackerDataStore.data
+            .map { it[TrackerKeys.USER_NAME]?.takeIf { name -> name.isNotBlank() } }
+            .first()
     }
 
     companion object {

@@ -6,8 +6,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.unit.IntOffset
 import app.andama.calmly.data.CalmlyTracker
 import app.andama.calmly.screens.*
 import app.andama.calmly.service.OverlayService
@@ -17,7 +25,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun CalmlyNavHost(
     navController: NavHostController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    startDestination: String = Screen.Home.route
 ) {
     val context = LocalContext.current
     // Bound to the composition rather than a free-floating CoroutineScope, which
@@ -25,11 +34,40 @@ fun CalmlyNavHost(
     val scope = rememberCoroutineScope()
     val tracker = remember { CalmlyTracker(context) }
 
+    // Springy push/pop: screens slide in with a slight overshoot instead of the
+    // stock crossfade, matching the bouncy feel of the in-screen components.
+    val bouncySlide = spring<IntOffset>(
+        dampingRatio = 0.75f,
+        stiffness = Spring.StiffnessMediumLow
+    )
+
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route,
-        modifier = modifier
+        startDestination = startDestination,
+        modifier = modifier,
+        enterTransition = {
+            slideInHorizontally(animationSpec = bouncySlide) { it / 3 } + fadeIn(tween(200))
+        },
+        exitTransition = {
+            slideOutHorizontally(animationSpec = bouncySlide) { -it / 4 } + fadeOut(tween(150))
+        },
+        popEnterTransition = {
+            slideInHorizontally(animationSpec = bouncySlide) { -it / 3 } + fadeIn(tween(200))
+        },
+        popExitTransition = {
+            slideOutHorizontally(animationSpec = bouncySlide) { it / 4 } + fadeOut(tween(150))
+        }
     ) {
+        composable(Screen.Onboarding.route) {
+            OnboardingScreen(
+                onDone = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(Screen.Home.route) {
             HomeScreen(
                 onOverwhelmClick = {

@@ -1,7 +1,15 @@
 package app.andama.calmly.ui.components
 
+import androidx.annotation.DrawableRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -22,6 +30,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -93,6 +102,57 @@ fun CalmlyScreen(
     }
 }
 
+/**
+ * Staggered entrance: content pops in with a springy slide-up + scale. Give each
+ * section on a screen an increasing [delayMillis] so the page assembles itself.
+ */
+@Composable
+fun EnterBounce(
+    delayMillis: Int = 0,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(delayMillis.toLong())
+        visible = true
+    }
+    AnimatedVisibility(
+        visible = visible,
+        modifier = modifier,
+        enter = fadeIn(tween(220)) +
+                slideInVertically(
+                    animationSpec = spring(
+                        dampingRatio = 0.6f,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                ) { it / 3 } +
+                scaleIn(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    ),
+                    initialScale = 0.92f
+                )
+    ) {
+        content()
+    }
+}
+
+/** Springy press-scale shared by every tappable surface in the app. */
+@Composable
+private fun pressScale(pressed: Boolean): Float {
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "press"
+    )
+    return scale
+}
+
 /** An all-caps section divider label. */
 @Composable
 fun SectionLabel(text: String, modifier: Modifier = Modifier) {
@@ -116,11 +176,14 @@ fun CalmlyCard(
     val colors = CardDefaults.cardColors(containerColor = containerColor)
 
     if (onClick != null) {
+        val interactionSource = remember { MutableInteractionSource() }
+        val pressed by interactionSource.collectIsPressedAsState()
         Card(
-            modifier = modifier,
+            modifier = modifier.scale(pressScale(pressed)),
             shape = shape,
             colors = colors,
             onClick = onClick,
+            interactionSource = interactionSource,
             content = content
         )
     } else {
@@ -149,18 +212,13 @@ fun GradientActionButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.97f else 1f,
-        animationSpec = tween(120),
-        label = "press"
-    )
 
     Surface(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .scale(scale),
+            .scale(pressScale(pressed)),
         shape = RoundedCornerShape(22.dp),
         color = Color.Transparent,
         interactionSource = interactionSource
@@ -199,11 +257,15 @@ fun CalmlyButton(
     containerColor: Color = PrimaryBlue,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
     Button(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp),
+            .height(56.dp)
+            .scale(pressScale(pressed)),
+        interactionSource = interactionSource,
         enabled = enabled,
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
@@ -235,9 +297,14 @@ fun StreakRing(
     modifier: Modifier = Modifier,
     size: Dp = 220.dp
 ) {
+    // Springy sweep: overshoots the target a touch, then settles. The drawn value
+    // is clamped so the bounce can't wrap the arc past a full circle.
     val animatedProgress by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
-        animationSpec = tween(900),
+        animationSpec = spring(
+            dampingRatio = 0.65f,
+            stiffness = Spring.StiffnessLow
+        ),
         label = "ring"
     )
 
@@ -352,18 +419,17 @@ fun StatTile(
     }
 }
 
-/** Tool entry in the home grid: coloured glyph chip, title, subtitle. */
+/** Tool entry in the home grid: 3D icon, title, subtitle. */
 @Composable
 fun ToolTile(
-    glyph: String,
+    @DrawableRes iconRes: Int,
     title: String,
     subtitle: String,
-    accent: Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     CalmlyCard(
-        modifier = modifier.height(104.dp),
+        modifier = modifier.height(112.dp),
         containerColor = SoftBackground,
         onClick = onClick
     ) {
@@ -373,16 +439,12 @@ fun ToolTile(
                 .padding(14.dp),
             verticalArrangement = Arrangement.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(accent.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = glyph, fontSize = 16.sp)
-            }
-            Spacer(Modifier.height(10.dp))
+            Image(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(40.dp)
+            )
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,

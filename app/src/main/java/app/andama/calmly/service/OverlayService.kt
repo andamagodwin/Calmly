@@ -18,11 +18,17 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
 import androidx.core.content.res.ResourcesCompat
 import app.andama.calmly.R
+import app.andama.calmly.data.CalmlyTracker
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class OverlayService : Service() {
 
@@ -178,6 +184,18 @@ class OverlayService : Service() {
             typeface = nunitoBold
         }
 
+        // Hearing your own name cuts through the trance better than any slogan.
+        CoroutineScope(Dispatchers.IO).launch {
+            val name = CalmlyTracker(this@OverlayService).getUserName() ?: return@launch
+            withContext(Dispatchers.Main) {
+                statusText.text = if (isUrgeMode) {
+                    "${name.uppercase()}. LOCKED. RIDE IT OUT."
+                } else {
+                    "FOCUS MODE, ${name.uppercase()}."
+                }
+            }
+        }
+
         val messageText = TextView(this).apply {
             text = if (isUrgeMode)
                 "The urge peaks and breaks in about 15 minutes. Every second you hold, it loses.\nNo shortcuts. No negotiating."
@@ -238,11 +256,23 @@ class OverlayService : Service() {
             }
         })
 
+        // Cal stands guard over the lock; in calm mode it meditates instead.
+        val mascotView = ImageView(this).apply {
+            setImageResource(
+                if (isUrgeMode) R.drawable.mascot_guard else R.drawable.mascot_meditate
+            )
+        }
+
         overlayView = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.parseColor("#F70E0A1A"))
             gravity = Gravity.CENTER
             setPadding(64, 0, 64, 0)
+
+            addView(mascotView, LinearLayout.LayoutParams(320, 320).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                bottomMargin = 32
+            })
 
             addView(statusText, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
