@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import app.andama.calmly.service.DangerHoursSentinel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
@@ -52,24 +53,81 @@ data class RelapseEntry(
     val streakLost: Int
 )
 
+/** Everything the home screen renders, resolved in a single read. */
+data class StreakInfo(
+    val days: Int,
+    val hours: Int,
+    val longest: Int,
+    val totalRelapses: Int,
+    val checkedInToday: Boolean
+) {
+    val nextMilestone: Int? = MILESTONES.firstOrNull { it > days }
+
+    /**
+     * Fraction of the way from the previous milestone to the next one. Hours are
+     * folded in so the ring creeps forward during day zero instead of sitting
+     * empty for 24 hours — that first day is when the feedback matters most.
+     */
+    val milestoneProgress: Float
+        get() {
+            val next = nextMilestone ?: return 1f
+            val previous = MILESTONES.lastOrNull { it <= days } ?: 0
+            val span = next - previous
+            if (span <= 0) return 1f
+            val elapsed = (days - previous) + (hours / 24f)
+            return (elapsed / span).coerceIn(0f, 1f)
+        }
+
+    companion object {
+        val MILESTONES = listOf(1, 3, 7, 14, 30, 60, 90, 180, 365)
+    }
+}
+
 class CalmlyTracker(private val context: Context) {
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     private val dateTimeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
-    suspend fun getCleanDays(): Int {
-        val startTime = context.trackerDataStore.data.map { it[TrackerKeys.CLEAN_STREAK_START] }.first()
-        if (startTime == null || startTime == 0L) return 0
-        val diff = System.currentTimeMillis() - startTime
-        return (diff / (24 * 60 * 60 * 1000L)).toInt()
+    private fun elapsedMillis(startTime: Long?): Long {
+        if (startTime == null || startTime == 0L) return 0L
+        return (System.currentTimeMillis() - startTime).coerceAtLeast(0L)
     }
 
+    suspend fun getCleanDays(): Int {
+        val startTime = context.trackerDataStore.data.map { it[TrackerKeys.CLEAN_STREAK_START] }.first()
+        return (elapsedMillis(startTime) / DAY_MS).toInt()
+    }
+
+    /** Hours elapsed within the current day of the streak (0..23). */
+    suspend fun getCleanHours(): Int {
+        val startTime = context.trackerDataStore.data.map { it[TrackerKeys.CLEAN_STREAK_START] }.first()
+        return ((elapsedMillis(startTime) % DAY_MS) / HOUR_MS).toInt()
+    }
+
+    /**
+     * The stored value only updates on relapse, so a streak that is currently
+     * the longest one ever wouldn't be reflected until the user broke it.
+     */
     suspend fun getLongestCleanStreak(): Int {
-        return context.trackerDataStore.data.map { it[TrackerKeys.LONGEST_CLEAN_STREAK] ?: 0 }.first()
+        val stored = context.trackerDataStore.data.map { it[TrackerKeys.LONGEST_CLEAN_STREAK] ?: 0 }.first()
+        return maxOf(stored, getCleanDays())
     }
 
     suspend fun getTotalRelapses(): Int {
         return context.trackerDataStore.data.map { it[TrackerKeys.TOTAL_RELAPSES] ?: 0 }.first()
+    }
+
+    suspend fun getStreakInfo(): StreakInfo {
+        val prefs = context.trackerDataStore.data.first()
+        val elapsed = elapsedMillis(prefs[TrackerKeys.CLEAN_STREAK_START])
+        val days = (elapsed / DAY_MS).toInt()
+        return StreakInfo(
+            days = days,
+            hours = ((elapsed % DAY_MS) / HOUR_MS).toInt(),
+            longest = maxOf(prefs[TrackerKeys.LONGEST_CLEAN_STREAK] ?: 0, days),
+            totalRelapses = prefs[TrackerKeys.TOTAL_RELAPSES] ?: 0,
+            checkedInToday = prefs[TrackerKeys.LAST_CHECKIN_DATE] == dateFormat.format(Date())
+        )
     }
 
     suspend fun startCleanStreak() {
@@ -202,6 +260,9 @@ class CalmlyTracker(private val context: Context) {
             prefs[TrackerKeys.DANGER_HOURS_END] = endHour
             prefs[TrackerKeys.DANGER_HOURS_ENABLED] = if (enabled) "true" else "false"
         }
+        // Arm (or disarm) the background alarm that watches this window; without
+        // it the setting only ever mattered while the app happened to be open.
+        DangerHoursSentinel.reschedule(context)
     }
 
     suspend fun getDangerHours(): Triple<Int, Int, Boolean>? {
@@ -239,5 +300,10 @@ class CalmlyTracker(private val context: Context) {
         val phone = data[TrackerKeys.PARTNER_PHONE] ?: return null
         val enabled = data[TrackerKeys.PARTNER_ENABLED] == "true"
         return Triple(name, phone, enabled)
+    }
+
+    companion object {
+        private const val HOUR_MS = 60 * 60 * 1000L
+        private const val DAY_MS = 24 * HOUR_MS
     }
 }

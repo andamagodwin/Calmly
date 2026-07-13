@@ -61,7 +61,7 @@ fun DangerHoursScreen(
             )
 
             Text(
-                text = "Set your high-risk hours.\nOverlay auto-activates during this window.",
+                text = "Set your high-risk hours.\nCalmly will flag them and keep the lock one tap away.",
                 style = MaterialTheme.typography.bodyLarge,
                 fontSize = 16.sp,
                 color = TextSecondary,
@@ -192,9 +192,9 @@ fun DangerHoursScreen(
             ) {
                 Text(
                     text = if (enabled)
-                        "The overlay will auto-activate between ${String.format("%02d:00", startHour)} and ${String.format("%02d:00", endHour)} every day."
+                        "Between ${String.format("%02d:00", startHour)} and ${String.format("%02d:00", endHour)}, Calmly will warn you on the home screen and keep the lock one tap away."
                     else
-                        "Enable to auto-lock your phone during dangerous hours.",
+                        "Enable to have Calmly watch your high-risk window.",
                     modifier = Modifier.padding(16.dp),
                     fontSize = 14.sp,
                     color = if (enabled) WarningAmber else CalmGrey,

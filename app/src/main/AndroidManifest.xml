@@ -13,6 +13,10 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Accountability texts must send silently: when the urge lock fires, a
+         full-screen overlay covers everything, so opening the SMS composer
+         underneath it can never be seen or sent by the user. -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
@@ -112,6 +116,16 @@
 
         <receiver
             android:name=".service.QuoteReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
+            android:name=".service.DangerHoursReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
+            android:name=".service.DailyReminderReceiver"
             android:enabled="true"
             android:exported="false" />
     </application>

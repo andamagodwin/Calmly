@@ -9,33 +9,25 @@ import android.widget.RemoteViews
 import app.andama.calmly.MainActivity
 import app.andama.calmly.R
 import app.andama.calmly.achievements.AchievementManager
+import kotlinx.coroutines.flow.first
 
 object WidgetUpdater {
-    
-    fun updateWidget(context: Context) {
+
+    // This used to runBlocking { collect { } } — a DataStore flow never completes,
+    // so with a widget on the home screen the call never returned and froze the
+    // completion screen's coroutine (ANR on main). Suspend and take one value.
+    suspend fun updateWidget(context: Context) {
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val appWidgetIds = appWidgetManager.getAppWidgetIds(
             ComponentName(context, CalmlyWidget::class.java)
         )
-        
+
         if (appWidgetIds.isEmpty()) return
-        
-        val achievementManager = AchievementManager(context)
-        
-        // Get achievement data synchronously
-        var totalSessions = 0
-        var currentStreak = 0
-        
-        kotlinx.coroutines.runBlocking {
-            achievementManager.achievementData.collect { data ->
-                totalSessions = data.totalSessions
-                currentStreak = data.currentStreak
-                return@collect
-            }
-        }
-        
+
+        val data = AchievementManager(context).achievementData.first()
+
         for (appWidgetId in appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId, totalSessions, currentStreak)
+            updateAppWidget(context, appWidgetManager, appWidgetId, data.totalSessions, data.currentStreak)
         }
     }
     

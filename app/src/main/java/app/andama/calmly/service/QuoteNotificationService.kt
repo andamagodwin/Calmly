@@ -38,7 +38,23 @@ private val brutalQuotes = listOf(
     "You are training your brain right now. What are you training it to do?",
     "The chains of habit are too light to be felt until they're too heavy to be broken.",
     "Regret from inaction lasts longer than discomfort from discipline.",
-    "This moment will pass. Your self-respect won't come back as easily."
+    "This moment will pass. Your self-respect won't come back as easily.",
+    "The version of you that wins doesn't feel like fighting either. He fights anyway.",
+    "Urges are loudest right before they die. That noise means you're winning.",
+    "You've survived 100% of your worst moments. This one loses too.",
+    "Your brain will lie to you tonight. You don't have to believe it.",
+    "Ten minutes of discomfort or another morning of regret. Choose now.",
+    "Nobody ever relapsed and felt better about it. Not once. Not ever.",
+    "The streak isn't the prize. The person who can hold a streak is.",
+    "Comfort is a debt. It always collects with interest.",
+    "You don't need motivation to win. You need the next ten minutes.",
+    "It's not about never falling. It's about making the fall fight for it.",
+    "Right now, somewhere, the future you is begging you to hold.",
+    "An urge is a wave. You are the rock. Waves always retreat first.",
+    "You already know exactly how giving in ends. Go find out how holding ends.",
+    "Weak moments don't make weak people. Quitting the fight does.",
+    "Dopamine is cheap. Self-respect is earned at full price.",
+    "The battle is 15 minutes long. The victory lasts all day."
 )
 
 fun showQuoteNotification(context: Context) {

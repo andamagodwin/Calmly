@@ -6,10 +6,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import app.andama.calmly.data.CalmlyTracker
 import app.andama.calmly.screens.*
 import app.andama.calmly.service.OverlayService
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -19,6 +20,10 @@ fun CalmlyNavHost(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    // Bound to the composition rather than a free-floating CoroutineScope, which
+    // would outlive the screen and leak.
+    val scope = rememberCoroutineScope()
+    val tracker = remember { CalmlyTracker(context) }
 
     NavHost(
         navController = navController,
@@ -38,9 +43,7 @@ fun CalmlyNavHost(
                 onUrgeClick = {
                     if (checkOverlayPermission(context)) {
                         OverlayService.startService(context, durationMs = 15 * 60 * 1000L, mode = "urge")
-                        // Send accountability text if enabled
-                        CoroutineScope(Dispatchers.IO).launch {
-                            val tracker = CalmlyTracker(context)
+                        scope.launch(Dispatchers.IO) {
                             val partner = tracker.getAccountabilityPartner()
                             if (partner != null && partner.third) {
                                 sendAccountabilityText(context, partner.first, partner.second)

@@ -84,16 +84,20 @@ class AlarmScheduler(private val context: Context) {
             }
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setAlarmClock(
-                    AlarmManager.AlarmClockInfo(calendar.timeInMillis, pendingIntent),
-                    pendingIntent
-                )
-            }
-        } else {
+        val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                alarmManager.canScheduleExactAlarms()
+        if (canExact) {
             alarmManager.setAlarmClock(
                 AlarmManager.AlarmClockInfo(calendar.timeInMillis, pendingIntent),
+                pendingIntent
+            )
+        } else {
+            // Never silently skip a wake-up alarm: if exact scheduling is revoked,
+            // a windowed alarm still rings within a few minutes of the target.
+            alarmManager.setWindow(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                5 * 60 * 1000L,
                 pendingIntent
             )
         }

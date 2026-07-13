@@ -8,10 +8,12 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.graphics.Typeface
 import android.os.Build
 import android.os.CountDownTimer
 import android.os.IBinder
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -19,6 +21,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
+import androidx.core.content.res.ResourcesCompat
 import app.andama.calmly.R
 
 class OverlayService : Service() {
@@ -36,7 +39,16 @@ class OverlayService : Service() {
         const val EXTRA_MODE = "extra_mode"
 
         private const val DEFAULT_DURATION = 15 * 60 * 1000L
-        private const val EXIT_PHRASE = "I am choosing weakness"
+
+        // How long the early-exit input stays sealed in urge mode (capped at half
+        // the lock duration so short locks still offer an exit).
+        private const val NO_EXIT_PERIOD_MS = 2 * 60 * 1000L
+
+        // Deliberately slow to type — that friction is the point. But it is not
+        // shaming: making someone call themselves weak to leave feeds the shame
+        // spiral that drives the next relapse. Make the exit a conscious choice,
+        // not a confession.
+        private const val EXIT_PHRASE = "I am choosing to unlock early"
 
         fun startService(context: Context, durationMs: Long = DEFAULT_DURATION, mode: String = "calm") {
             val intent = Intent(context, OverlayService::class.java).apply {
@@ -70,6 +82,19 @@ class OverlayService : Service() {
                 val duration = intent.getLongExtra(EXTRA_DURATION, DEFAULT_DURATION)
                 val mode = intent.getStringExtra(EXTRA_MODE) ?: "calm"
                 startForeground(NOTIFICATION_ID, createNotification())
+                // The panic widget can start this service without the app ever having
+                // been granted overlay permission; addView would throw and crash the
+                // service. Fall back to opening the app instead.
+                if (!android.provider.Settings.canDrawOverlays(this)) {
+                    startActivity(
+                        Intent(this, app.andama.calmly.MainActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                    )
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
                 showOverlay(duration, mode)
             }
             ACTION_STOP -> {
@@ -129,57 +154,75 @@ class OverlayService : Service() {
 
         val isUrgeMode = mode == "urge"
 
+        // A firm physical thump when the lock engages — the lock should be *felt*.
+        if (isUrgeMode) vibrateLockEngaged()
+
+        // The overlay is classic Views, so the Compose theme's Nunito doesn't
+        // reach it; load the same faces from resources.
+        val nunitoBold = ResourcesCompat.getFont(this, R.font.nunito_bold)
+        val nunitoRegular = ResourcesCompat.getFont(this, R.font.nunito_regular)
+
         val timerText = TextView(this).apply {
             text = formatTime(durationMs)
-            setTextColor(if (isUrgeMode) Color.parseColor("#FF4757") else Color.parseColor("#58A6FF"))
+            setTextColor(if (isUrgeMode) Color.parseColor("#DC3545") else Color.parseColor("#17A2B8"))
             textSize = 48f
             gravity = Gravity.CENTER
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            typeface = nunitoBold
         }
 
         val statusText = TextView(this).apply {
             text = if (isUrgeMode) "LOCKED. RIDE IT OUT." else "FOCUS MODE ACTIVE"
-            setTextColor(Color.WHITE)
+            setTextColor(Color.parseColor("#EFEAFB"))
             textSize = 20f
             gravity = Gravity.CENTER
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            typeface = nunitoBold
         }
 
         val messageText = TextView(this).apply {
             text = if (isUrgeMode)
-                "This overlay will disappear when the timer ends.\nNo shortcuts. No cheats. You're stronger than this."
+                "The urge peaks and breaks in about 15 minutes. Every second you hold, it loses.\nNo shortcuts. No negotiating."
             else
                 "This overlay will disappear when the timer ends.\nStay with the process."
-            setTextColor(Color.parseColor("#8B949E"))
+            setTextColor(Color.parseColor("#A79CC8"))
             textSize = 14f
             gravity = Gravity.CENTER
+            typeface = nunitoRegular
         }
 
         val exitLabel = TextView(this).apply {
-            text = if (isUrgeMode)
-                "To quit early, type: \"$EXIT_PHRASE\""
-            else
-                "To exit early, type: \"$EXIT_PHRASE\""
-            setTextColor(Color.parseColor("#484F58"))
+            text = "To exit early, type: \"$EXIT_PHRASE\""
+            setTextColor(Color.parseColor("#6F6493"))
             textSize = 12f
             gravity = Gravity.CENTER
+            typeface = nunitoRegular
         }
 
         val exitInput = EditText(this).apply {
             hint = "Type the phrase to exit..."
-            setHintTextColor(Color.parseColor("#484F58"))
-            setTextColor(Color.WHITE)
+            setHintTextColor(Color.parseColor("#6F6493"))
+            setTextColor(Color.parseColor("#EFEAFB"))
             textSize = 14f
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.parseColor("#21262D"))
+            setBackgroundColor(Color.parseColor("#1F1735"))
             setPadding(32, 24, 32, 24)
+            typeface = nunitoRegular
         }
 
         val exitStatus = TextView(this).apply {
             text = ""
-            setTextColor(Color.parseColor("#FF4757"))
+            setTextColor(Color.parseColor("#DC3545"))
             textSize = 12f
             gravity = Gravity.CENTER
+            typeface = nunitoRegular
+        }
+
+        // In urge mode the escape hatch stays sealed for the first stretch — the
+        // moments right after pressing the button are exactly when the urge argues
+        // hardest. The countdown makes the door visible but not yet openable.
+        val noExitMs = if (isUrgeMode) minOf(NO_EXIT_PERIOD_MS, durationMs / 2) else 0L
+        if (noExitMs > 0) {
+            exitInput.visibility = View.GONE
+            exitLabel.text = "Exit unlocks in ${formatTime(noExitMs)}"
         }
 
         exitInput.addTextChangedListener(object : android.text.TextWatcher {
@@ -197,7 +240,7 @@ class OverlayService : Service() {
 
         overlayView = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.parseColor("#F0000000"))
+            setBackgroundColor(Color.parseColor("#F70E0A1A"))
             gravity = Gravity.CENTER
             setPadding(64, 0, 64, 0)
 
@@ -237,17 +280,46 @@ class OverlayService : Service() {
         countdownTimer = object : CountDownTimer(durationMs, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
                 timerText.text = formatTime(millisUntilFinished)
+
+                if (noExitMs > 0 && exitInput.visibility == View.GONE) {
+                    val elapsed = durationMs - millisUntilFinished
+                    if (elapsed >= noExitMs) {
+                        exitInput.visibility = View.VISIBLE
+                        exitLabel.text = "To exit early, type: \"$EXIT_PHRASE\""
+                    } else {
+                        exitLabel.text = "Exit unlocks in ${formatTime(noExitMs - elapsed)}"
+                    }
+                }
             }
 
             override fun onFinish() {
                 timerText.text = "00:00"
                 statusText.text = "TIME'S UP. YOU'RE FREE."
-                statusText.setTextColor(Color.parseColor("#2ED573"))
+                statusText.setTextColor(Color.parseColor("#17A2B8"))
                 removeOverlay()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
         }.start()
+    }
+
+    /** Two firm pulses when the lock engages — the commitment should be felt. */
+    private fun vibrateLockEngaged() {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val manager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            manager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(
+                VibrationEffect.createWaveform(longArrayOf(0, 120, 80, 200), -1)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(longArrayOf(0, 120, 80, 200), -1)
+        }
     }
 
     private fun formatTime(ms: Long): String {
@@ -259,7 +331,12 @@ class OverlayService : Service() {
 
     private fun removeOverlay() {
         overlayView?.let {
-            windowManager?.removeView(it)
+            // The view may already be detached (e.g. the timer finished at the same
+            // moment the user typed the exit phrase). Removing it twice throws.
+            try {
+                windowManager?.removeView(it)
+            } catch (_: IllegalArgumentException) {
+            }
             overlayView = null
         }
     }

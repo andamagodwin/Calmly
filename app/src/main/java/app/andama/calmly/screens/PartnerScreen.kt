@@ -1,7 +1,13 @@
 package app.andama.calmly.screens
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.telephony.SmsManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import app.andama.calmly.data.CalmlyTracker
 import app.andama.calmly.ui.theme.*
 import kotlinx.coroutines.launch
@@ -91,10 +98,22 @@ fun PartnerScreen(
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
+                    val smsPermission = rememberLauncherForActivityResult(
+                        ActivityResultContracts.RequestPermission()
+                    ) { }
+
                     Switch(
                         checked = enabled,
                         onCheckedChange = {
                             enabled = it
+                            // The auto-text only sends silently with SEND_SMS granted;
+                            // ask the moment the user opts in, not mid-crisis.
+                            if (it && ContextCompat.checkSelfPermission(
+                                    context, Manifest.permission.SEND_SMS
+                                ) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                smsPermission.launch(Manifest.permission.SEND_SMS)
+                            }
                             scope.launch {
                                 tracker.setAccountabilityPartner(partnerName, partnerPhone, it)
                             }
@@ -208,6 +227,28 @@ fun PartnerScreen(
 
 fun sendAccountabilityText(context: android.content.Context, name: String, phone: String) {
     val message = "Hey $name, I'm struggling right now and I need accountability. - Sent from Calmly"
+
+    // Send for real when we can. The old behaviour — opening the SMS composer —
+    // happened *underneath* the urge lock's full-screen overlay, so the text was
+    // never visible, never sent, and the partner never knew.
+    val canSend = ContextCompat.checkSelfPermission(
+        context, Manifest.permission.SEND_SMS
+    ) == PackageManager.PERMISSION_GRANTED
+    if (canSend) {
+        try {
+            val smsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                context.getSystemService(SmsManager::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                SmsManager.getDefault()
+            }
+            smsManager.sendTextMessage(phone, null, message, null, null)
+            return
+        } catch (_: Exception) {
+            // fall through to the composer
+        }
+    }
+
     val intent = Intent(Intent.ACTION_VIEW).apply {
         data = Uri.parse("sms:$phone")
         putExtra("sms_body", message)
