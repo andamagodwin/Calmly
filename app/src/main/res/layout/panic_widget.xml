@@ -11,8 +11,8 @@
     <ImageView
         android:layout_width="52dp"
         android:layout_height="52dp"
-        android:src="@drawable/mascot_guard"
-        android:contentDescription="Cal standing guard" />
+        android:src="@drawable/face_fierce"
+        android:contentDescription="Cal, game face on" />
 
     <TextView
         android:layout_width="wrap_content"

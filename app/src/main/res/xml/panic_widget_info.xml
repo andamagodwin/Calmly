@@ -6,7 +6,7 @@
     android:targetCellWidth="2"
     android:targetCellHeight="2"
     android:previewLayout="@layout/panic_widget"
-    android:previewImage="@drawable/mascot_guard"
+    android:previewImage="@drawable/face_fierce"
     android:description="@string/widget_panic_description"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"

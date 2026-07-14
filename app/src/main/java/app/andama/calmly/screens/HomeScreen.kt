@@ -14,10 +14,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.andama.calmly.R
+import app.andama.calmly.data.Cal
+import app.andama.calmly.data.CalState
 import app.andama.calmly.data.CalmlyTracker
+import app.andama.calmly.data.ScreenTimeInsights
+import app.andama.calmly.data.ScreenTimeMonitor
 import app.andama.calmly.data.StreakInfo
+import app.andama.calmly.ui.faceRes
+import app.andama.calmly.ui.label
 import app.andama.calmly.ui.components.*
 import app.andama.calmly.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 
 @Composable
@@ -31,23 +39,49 @@ fun HomeScreen(
     onRelapseClick: () -> Unit,
     onDangerHoursClick: () -> Unit,
     onPartnerClick: () -> Unit,
-    onAchievementsClick: () -> Unit
+    onAchievementsClick: () -> Unit,
+    onPatternsClick: () -> Unit
 ) {
     val context = LocalContext.current
     val tracker = remember { CalmlyTracker(context) }
+    val screenTime = remember { ScreenTimeMonitor(context) }
     var streak by remember { mutableStateOf<StreakInfo?>(null) }
     var inDangerHours by remember { mutableStateOf(false) }
     var userName by remember { mutableStateOf<String?>(null) }
+    var insights by remember { mutableStateOf<ScreenTimeInsights.Insights?>(null) }
+    var screenTimeEnabled by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         tracker.startCleanStreak()
         streak = tracker.getStreakInfo()
         inDangerHours = tracker.isInDangerHours()
         userName = tracker.getUserName()
+
+        screenTimeEnabled = screenTime.isSupported() && screenTime.hasPermission()
+        if (screenTimeEnabled) {
+            insights = withContext(Dispatchers.IO) {
+                ScreenTimeInsights.analyze(
+                    screenTime.readRecentDays(),
+                    tracker.getRelapseDates()
+                )
+            }
+        }
     }
 
     val days = streak?.days ?: 0
     val ringColor = streakColor(days)
+
+    // Cal's face on the home header is a mirror, not decoration: day zero, an open
+    // danger window or a restless day all show up here before the user reads a word.
+    val calState = CalState(
+        cleanDays = days,
+        hoursIntoDay = streak?.hours ?: 0,
+        checkedInToday = streak?.checkedInToday == true,
+        inDangerWindow = inDangerHours,
+        escalation = 0,
+        isRestless = insights?.isRestlessToday == true
+    )
+    val calMood = Cal.face(calState)
 
     CalmlyScreen(scrollable = true) {
         Spacer(Modifier.height(20.dp))
@@ -80,8 +114,8 @@ fun HomeScreen(
                     Spacer(Modifier.width(10.dp))
                 }
                 Image(
-                    painter = painterResource(R.drawable.mascot_idle),
-                    contentDescription = "Cal the axolotl waving",
+                    painter = painterResource(calMood.faceRes),
+                    contentDescription = "Cal the axolotl, looking ${calMood.label.lowercase()}",
                     modifier = Modifier.size(64.dp)
                 )
             }
@@ -131,6 +165,16 @@ fun HomeScreen(
 
         SectionLabel("Right now")
         Spacer(Modifier.height(12.dp))
+
+        // Screen-time signal. Only ever shown when it has something to say —
+        // a warning if last night ran long or the user is restless today, and
+        // otherwise a quiet nudge to turn the feature on. No noise in between.
+        ScreenTimeCard(
+            insights = insights,
+            enabled = screenTimeEnabled,
+            supported = screenTime.isSupported(),
+            onClick = onPatternsClick
+        )
 
         // The user told us this window is risky for them. Surface it and offer the
         // lock — rather than forcing an opaque overlay over the app they just opened
@@ -281,6 +325,88 @@ fun HomeScreen(
 
         Spacer(Modifier.height(32.dp))
     }
+}
+
+/**
+ * The screen-time signal on Home. Deliberately quiet: it only earns its space
+ * when it has an actual warning, otherwise it's a one-line offer or nothing.
+ * A card that says "everything is fine" every day teaches people to ignore it.
+ */
+@Composable
+private fun ScreenTimeCard(
+    insights: ScreenTimeInsights.Insights?,
+    enabled: Boolean,
+    supported: Boolean,
+    onClick: () -> Unit
+) {
+    if (!supported) return
+
+    if (!enabled) {
+        CalmlyCard(
+            modifier = Modifier.fillMaxWidth(),
+            containerColor = SoftBackground,
+            onClick = onClick
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text(
+                    text = "Let Cal spot your pattern",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryBlue
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Late nights on your phone are the warning sign. Turn on usage access and Calmly will call them out.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        return
+    }
+
+    val data = insights ?: return
+
+    val heavyNight = data.lastNightLateMinutes >= 60
+    val restless = data.isRestlessToday
+    if (!heavyNight && !restless) return
+
+    val accent = if (heavyNight) DangerRed else WarningAmber
+    val title = if (heavyNight) {
+        "Long night on the phone"
+    } else {
+        "You're restless today"
+    }
+    val body = if (heavyNight) {
+        "${ScreenTimeInsights.formatMinutes(data.lastNightLateMinutes)} after 11pm last night. " +
+            "That's the pattern that usually costs you — stay close to the tools today."
+    } else {
+        "You've unlocked your phone ${data.restlessnessDelta}% more than your usual. " +
+            "Name the itch before it names you."
+    }
+
+    CalmlyCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = accent.copy(alpha = 0.14f),
+        onClick = onClick
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = accent
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary
+            )
+        }
+    }
+    Spacer(Modifier.height(12.dp))
 }
 
 /** Ring colour tiers by milestone so progress is legible at a glance. */

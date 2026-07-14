@@ -8,8 +8,13 @@ import android.content.Intent
 import android.widget.RemoteViews
 import app.andama.calmly.MainActivity
 import app.andama.calmly.R
+import app.andama.calmly.data.Cal
+import app.andama.calmly.data.CalState
+import app.andama.calmly.data.CalVoice
 import app.andama.calmly.data.CalmlyTracker
 import app.andama.calmly.data.StreakInfo
+import app.andama.calmly.ui.accentArgb
+import app.andama.calmly.ui.faceRes
 
 object WidgetUpdater {
 
@@ -28,21 +33,33 @@ object WidgetUpdater {
 
         if (appWidgetIds.isEmpty()) return
 
-        val streak = CalmlyTracker(context).getStreakInfo()
+        val tracker = CalmlyTracker(context)
+        val streak = tracker.getStreakInfo()
+        val state = tracker.getCalState()
 
         for (appWidgetId in appWidgetIds) {
-            appWidgetManager.updateAppWidget(appWidgetId, buildViews(context, streak))
+            appWidgetManager.updateAppWidget(appWidgetId, buildViews(context, streak, state))
         }
     }
 
-    private fun buildViews(context: Context, streak: StreakInfo): RemoteViews {
+    private fun buildViews(context: Context, streak: StreakInfo, state: CalState): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.calmly_widget)
+        val mood = Cal.face(state)
 
         views.setTextViewText(R.id.widget_days, "${streak.days}")
         views.setTextViewText(
             R.id.widget_days_label,
             if (streak.days == 1) "DAY CLEAN" else "DAYS CLEAN"
         )
+
+        // Cal is the whole point of the widget: a number on a home screen is easy
+        // to stop seeing, a face that changes is not. The count takes his colour
+        // so the state reads at a glance, from across the room, without squinting
+        // at the caption.
+        views.setImageViewResource(R.id.widget_face, mood.faceRes)
+        views.setTextViewText(R.id.widget_cal_line, CalVoice.widgetLine(mood, state))
+        views.setTextColor(R.id.widget_days, mood.accentArgb)
+        views.setTextColor(R.id.widget_cal_line, mood.accentArgb)
 
         val next = streak.nextMilestone
         views.setTextViewText(

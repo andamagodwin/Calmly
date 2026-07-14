@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import app.andama.calmly.R
+import app.andama.calmly.data.CalMood
 import app.andama.calmly.navigation.Screen
 import kotlin.random.Random
 
@@ -84,6 +85,7 @@ fun showQuoteNotification(context: Context) {
         .setContentText(quote)
         .setStyle(NotificationCompat.BigTextStyle().bigText(quote))
         .setSmallIcon(R.drawable.ic_launcher_foreground)
+        .setLargeIcon(CalIcon.face(context, CalMood.NEUTRAL))
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         .setContentIntent(deepLinkIntent(context, Screen.Home.route, requestCode))
         .setAutoCancel(true)

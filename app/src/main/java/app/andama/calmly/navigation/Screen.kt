@@ -20,4 +20,5 @@ sealed class Screen(val route: String) {
     object Relapse : Screen("relapse")
     object DangerHours : Screen("danger_hours")
     object Partner : Screen("partner")
+    object Patterns : Screen("patterns")
 }

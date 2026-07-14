@@ -13,8 +13,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.andama.calmly.data.CalmlyTracker
+import app.andama.calmly.data.ScreenTimeInsights
+import app.andama.calmly.data.ScreenTimeMonitor
 import app.andama.calmly.ui.theme.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun DangerHoursScreen(
@@ -24,10 +28,13 @@ fun DangerHoursScreen(
     val tracker = remember { CalmlyTracker(context) }
     val scope = rememberCoroutineScope()
 
+    val screenTime = remember { ScreenTimeMonitor(context) }
+
     var startHour by remember { mutableIntStateOf(23) }
     var endHour by remember { mutableIntStateOf(5) }
     var enabled by remember { mutableStateOf(false) }
     var loaded by remember { mutableStateOf(false) }
+    var suggested by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
     LaunchedEffect(Unit) {
         val dangerHours = tracker.getDangerHours()
@@ -37,6 +44,13 @@ fun DangerHoursScreen(
             enabled = dangerHours.third
         }
         loaded = true
+
+        // The phone already knows when they're up late; no reason to make them guess.
+        if (screenTime.isSupported() && screenTime.hasPermission()) {
+            suggested = withContext(Dispatchers.IO) {
+                ScreenTimeInsights.suggestWindow(screenTime.readRecentDays())
+            }
+        }
     }
 
     Box(
@@ -68,6 +82,49 @@ fun DangerHoursScreen(
                 textAlign = TextAlign.Center,
                 lineHeight = 24.sp
             )
+
+            // Derived from real screen-time data, so the user doesn't have to guess
+            // their own worst hours from memory — memory is exactly what's unreliable here.
+            suggested?.let { window ->
+                if (window.first != startHour || window.second != endHour) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = PrimaryBlue.copy(alpha = 0.14f)
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Text(
+                                text = "Cal suggests ${ScreenTimeInsights.formatWindow(window)}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryBlue
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "That's when you're actually awake and on your phone, based on the last two weeks.",
+                                fontSize = 13.sp,
+                                color = TextSecondary,
+                                lineHeight = 18.sp
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            TextButton(
+                                onClick = {
+                                    startHour = window.first
+                                    endHour = window.second
+                                    enabled = true
+                                    scope.launch {
+                                        tracker.setDangerHours(window.first, window.second, true)
+                                    }
+                                }
+                            ) {
+                                Text("Use this window", color = PrimaryBlue, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 

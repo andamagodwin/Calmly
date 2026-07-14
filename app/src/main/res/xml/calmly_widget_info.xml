@@ -6,7 +6,7 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="3600000"
     android:previewLayout="@layout/calmly_widget"
-    android:previewImage="@drawable/mascot_idle"
+    android:previewImage="@drawable/face_happy"
     android:description="@string/widget_streak_description"
     android:initialLayout="@layout/calmly_widget"
     android:resizeMode="horizontal|vertical"

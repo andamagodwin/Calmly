@@ -18,6 +18,13 @@
          underneath it can never be seen or sent by the user. -->
     <uses-permission android:name="android.permission.SEND_SMS" />
 
+    <!-- Special permission: not requestable inline, the user grants it in system
+         settings. Calmly reads only screen on/off and unlock events from it —
+         never which apps are used. See ScreenTimeMonitor. -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application

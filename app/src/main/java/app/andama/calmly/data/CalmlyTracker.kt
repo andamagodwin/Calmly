@@ -34,6 +34,8 @@ object TrackerKeys {
     val PARTNER_ENABLED = stringPreferencesKey("partner_enabled")
     val LAST_CHECKIN_DATE = stringPreferencesKey("last_checkin_date")
     val USER_NAME = stringPreferencesKey("user_name")
+    val PATROL_LEVEL = intPreferencesKey("patrol_level")
+    val PATROL_NIGHT = stringPreferencesKey("patrol_night")
 }
 
 data class MoodEntry(
@@ -182,6 +184,13 @@ class CalmlyTracker(private val context: Context) {
         return entries
     }
 
+    /**
+     * Relapse days as bare `yyyy-MM-dd` keys, for correlating against screen-time
+     * buckets. The log stores a full timestamp; only the date part is comparable.
+     */
+    suspend fun getRelapseDates(): Set<String> =
+        getRelapseLog().map { it.date.take(10) }.toSet()
+
     suspend fun logMood(level: Int, note: String = "") {
         val today = dateFormat.format(Date())
         context.trackerDataStore.edit { prefs ->
@@ -196,7 +205,13 @@ class CalmlyTracker(private val context: Context) {
             prefs[TrackerKeys.MOOD_LOG] = array.toString()
             prefs[TrackerKeys.LAST_CHECKIN_DATE] = today
         }
+        // The widget nags "check in?" until this happens — stop nagging.
+        WidgetUpdater.updateWidget(context)
     }
+
+    /** The most recent mood the user logged, if they have ever logged one. */
+    suspend fun getLatestMood(): CalMood? =
+        getMoodLog().firstOrNull()?.let { CalMood.fromLevel(it.level) }
 
     suspend fun getMoodLog(): List<MoodEntry> {
         val logJson = context.trackerDataStore.data.map { it[TrackerKeys.MOOD_LOG] ?: "[]" }.first()
@@ -318,6 +333,57 @@ class CalmlyTracker(private val context: Context) {
         return context.trackerDataStore.data
             .map { it[TrackerKeys.USER_NAME]?.takeIf { name -> name.isNotBlank() } }
             .first()
+    }
+
+    /**
+     * Highest danger-window warning already delivered for the night identified by
+     * [nightKey]. Escalations should only ever fire once each — the patrol wakes
+     * every 15 minutes, and re-sending the same warning every time would be noise
+     * the user learns to ignore.
+     */
+    suspend fun getPatrolLevel(nightKey: String): Int {
+        val prefs = context.trackerDataStore.data.first()
+        if (prefs[TrackerKeys.PATROL_NIGHT] != nightKey) return 0
+        return prefs[TrackerKeys.PATROL_LEVEL] ?: 0
+    }
+
+    suspend fun setPatrolLevel(nightKey: String, level: Int) {
+        context.trackerDataStore.edit { prefs ->
+            prefs[TrackerKeys.PATROL_NIGHT] = nightKey
+            prefs[TrackerKeys.PATROL_LEVEL] = level
+        }
+    }
+
+    /**
+     * How far tonight's escalation has already climbed, or 0 when we're outside
+     * the window. A window that spans midnight is keyed to the day it *opened*,
+     * so at 01:00 the live night is yesterday's key — hence both are accepted.
+     */
+    private suspend fun getCurrentPatrolLevel(): Int {
+        val prefs = context.trackerDataStore.data.first()
+        val night = prefs[TrackerKeys.PATROL_NIGHT] ?: return 0
+        val now = System.currentTimeMillis()
+        val today = dateFormat.format(Date(now))
+        val yesterday = dateFormat.format(Date(now - DAY_MS))
+        if (night != today && night != yesterday) return 0
+        return prefs[TrackerKeys.PATROL_LEVEL] ?: 0
+    }
+
+    /**
+     * Everything Cal's face reacts to, in one call. Restlessness is left at its
+     * default — it costs a 14-day screen-time read, so only callers that already
+     * have insights on hand should fold it in with `copy(isRestless = ...)`.
+     */
+    suspend fun getCalState(): CalState {
+        val streak = getStreakInfo()
+        val inWindow = isInDangerHours()
+        return CalState(
+            cleanDays = streak.days,
+            hoursIntoDay = streak.hours,
+            checkedInToday = streak.checkedInToday,
+            inDangerWindow = inWindow,
+            escalation = if (inWindow) getCurrentPatrolLevel() else 0
+        )
     }
 
     companion object {

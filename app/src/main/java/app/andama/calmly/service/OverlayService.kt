@@ -44,6 +44,16 @@ class OverlayService : Service() {
         const val EXTRA_DURATION = "extra_duration"
         const val EXTRA_MODE = "extra_mode"
 
+        /**
+         * True while the lock overlay is on screen. The danger-window patrol needs
+         * this: the overlay keeps the screen *on*, so without it the patrol would
+         * count the lock itself as phone use and escalate at someone who has
+         * already done exactly what it asked them to do.
+         */
+        @Volatile
+        var isLocked: Boolean = false
+            private set
+
         private const val DEFAULT_DURATION = 15 * 60 * 1000L
 
         // How long the early-exit input stays sealed in urge mode (capped at half
@@ -318,6 +328,7 @@ class OverlayService : Service() {
         }
 
         windowManager?.addView(overlayView, layoutParams)
+        isLocked = true
 
         countdownTimer = object : CountDownTimer(durationMs, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
@@ -381,6 +392,9 @@ class OverlayService : Service() {
             }
             overlayView = null
         }
+        // Cleared unconditionally: if the view was already gone, the lock is still
+        // over, and a stuck flag would silence the patrol for the rest of the night.
+        isLocked = false
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
