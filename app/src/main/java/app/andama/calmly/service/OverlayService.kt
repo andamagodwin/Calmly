@@ -184,6 +184,18 @@ class OverlayService : Service() {
             typeface = nunitoBold
         }
 
+        // Hearing your own name cuts through an urge better than any slogan.
+        CoroutineScope(Dispatchers.IO).launch {
+            val name = CalmlyTracker(this@OverlayService).getUserName() ?: return@launch
+            withContext(Dispatchers.Main) {
+                statusText.text = if (isUrgeMode) {
+                    "LOCKED, ${name.uppercase()}. RIDE IT OUT."
+                } else {
+                    "FOCUS MODE, ${name.uppercase()}."
+                }
+            }
+        }
+
         // Hearing your own name cuts through the trance better than any slogan.
         CoroutineScope(Dispatchers.IO).launch {
             val name = CalmlyTracker(this@OverlayService).getUserName() ?: return@launch

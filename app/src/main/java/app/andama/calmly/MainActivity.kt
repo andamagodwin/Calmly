@@ -19,6 +19,10 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -38,6 +42,13 @@ class MainActivity : ComponentActivity() {
     private val requestNotifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
+    // Plain Compose state on the Activity itself (not `remember`ed) so that both
+    // onCreate (cold start) and onNewIntent (the app already running — this
+    // activity is singleTask, so a notification tap re-enters through
+    // onNewIntent rather than a fresh onCreate) can push a route into the same
+    // place, and a composable can observe it and navigate.
+    private var pendingDeepLinkRoute by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -48,6 +59,7 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermission()
         scheduleQuoteNotifications()
         DailyReminders.scheduleIfNeeded(this)
+        pendingDeepLinkRoute = intent?.getStringExtra(EXTRA_DEEPLINK_ROUTE)
 
         // One tiny synchronous read at startup, while the splash screen is still
         // covering the window — the graph needs its start destination up front.
@@ -70,6 +82,21 @@ class MainActivity : ComponentActivity() {
                     // consumes the insets for the whole graph.
                     Box(modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
                         val navController = rememberNavController()
+
+                        // Consume the deep link once the graph exists. Skipped on a
+                        // fresh install: forcing a brand-new user off onboarding and
+                        // into, say, Achievements would be a broken first run — not
+                        // that a milestone or evening notification could fire before
+                        // onboarding finishes anyway, but a stale/replayed intent
+                        // shouldn't be able to do it either.
+                        LaunchedEffect(pendingDeepLinkRoute) {
+                            val route = pendingDeepLinkRoute
+                            if (route != null && startDestination != Screen.Onboarding.route) {
+                                navController.navigate(route) { launchSingleTop = true }
+                            }
+                            pendingDeepLinkRoute = null
+                        }
+
                         CalmlyNavHost(
                             navController = navController,
                             startDestination = startDestination
@@ -78,6 +105,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingDeepLinkRoute = intent.getStringExtra(EXTRA_DEEPLINK_ROUTE)
     }
 
     /**
@@ -139,5 +172,8 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val QUOTE_REQUEST_CODE = 100
         private const val QUOTE_INTERVAL_MS = 4 * 60 * 60 * 1000L
+
+        /** Route string carried by notification PendingIntents; see [deepLinkIntent]. */
+        const val EXTRA_DEEPLINK_ROUTE = "deeplink_route"
     }
 }

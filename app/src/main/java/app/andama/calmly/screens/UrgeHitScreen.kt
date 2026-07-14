@@ -1,19 +1,29 @@
 package app.andama.calmly.screens
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.andama.calmly.R
+import app.andama.calmly.ui.components.CalmlyCard
+import app.andama.calmly.ui.components.EnterBounce
+import app.andama.calmly.ui.components.GradientActionButton
 import app.andama.calmly.ui.theme.*
 import kotlinx.coroutines.delay
 
@@ -29,12 +39,12 @@ fun UrgeHitScreen(
     val brutalMessages = listOf(
         "You know exactly where this leads.",
         "15 minutes of shame for 10 seconds of nothing.",
-        "Think about the man you said you'd become.",
+        "Think about the person you said you'd become.",
         "This is your brain lying to you. It's not a need.",
-        "Every time you give in, you get weaker.",
+        "The urge is loudest right before it breaks.",
         "You've never once felt better after. Never.",
         "The version of you that resists this is the real you.",
-        "Your future self is watching. Make him proud.",
+        "Your future self is watching. Make them proud.",
         "This urge will peak and die. You just have to outlast it.",
         "You're stronger than a chemical impulse."
     )
@@ -54,6 +64,18 @@ fun UrgeHitScreen(
         }
     }
 
+    // A slow heartbeat on the timer — urgency you can see without reading.
+    val heartbeat = rememberInfiniteTransition(label = "heartbeat")
+    val timerScale by heartbeat.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.045f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 700, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "timer_pulse"
+    )
+
     val minutes = timeRemaining / 60
     val seconds = timeRemaining % 60
     val timeDisplay = String.format("%02d:%02d", minutes, seconds)
@@ -67,110 +89,104 @@ fun UrgeHitScreen(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "STOP.",
-                style = MaterialTheme.typography.displayLarge,
-                fontSize = 56.sp,
-                fontWeight = FontWeight.Black,
-                color = DangerRed,
-                textAlign = TextAlign.Center
-            )
+            EnterBounce {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Image(
+                        painter = painterResource(R.drawable.mascot_guard),
+                        contentDescription = "Cal standing guard",
+                        modifier = Modifier.size(104.dp)
+                    )
 
-            Text(
-                text = "You don't need this. You never did.",
-                style = MaterialTheme.typography.titleLarge,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Medium,
-                color = TextPrimary,
-                textAlign = TextAlign.Center
-            )
+                    Spacer(Modifier.height(12.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = timeDisplay,
-                style = MaterialTheme.typography.displayLarge,
-                fontSize = 64.sp,
-                fontWeight = FontWeight.Light,
-                color = DangerRed,
-                textAlign = TextAlign.Center
-            )
-
-            Text(
-                text = "Survive this timer. That's all.",
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = 16.sp,
-                color = TextSecondary,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = CardBackground
-                )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
                     Text(
-                        text = brutalMessages[currentMessageIndex],
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = WarningAmber,
+                        text = "STOP.",
+                        fontSize = 56.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp,
+                        color = DangerRed,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text = "You don't need this. You never did.",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = TextPrimary,
                         textAlign = TextAlign.Center
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            if (isTimerComplete) {
-                Button(
-                    onClick = onNext,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .clip(RoundedCornerShape(16.dp)),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent
-                    ),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
+            EnterBounce(delayMillis = 120) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = timeDisplay,
+                        fontSize = 64.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-2).sp,
+                        color = DangerRed,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.scale(if (isTimerComplete) 1f else timerScale)
+                    )
+
+                    Text(
+                        text = "Survive this timer. That's all.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            EnterBounce(delayMillis = 200) {
+                CalmlyCard(modifier = Modifier.fillMaxWidth()) {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(SuccessGreen, PrimaryBlue)
-                                )
-                            ),
+                            .fillMaxWidth()
+                            .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "I survived it. Next step.",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
+                        Crossfade(
+                            targetState = currentMessageIndex,
+                            animationSpec = tween(600),
+                            label = "urge_message"
+                        ) { index ->
+                            Text(
+                                text = brutalMessages[index],
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = WarningAmber,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            if (isTimerComplete) {
+                EnterBounce {
+                    GradientActionButton(
+                        title = "I survived it. Next step.",
+                        gradient = listOf(SuccessGreen, PrimaryBlue),
+                        height = 64.dp,
+                        onClick = onNext
+                    )
                 }
             } else {
                 Text(
                     text = "No shortcuts. Sit with the discomfort.",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 14.sp,
                     color = CalmGrey,
                     textAlign = TextAlign.Center
                 )

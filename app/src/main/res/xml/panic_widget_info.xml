@@ -2,7 +2,12 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:initialLayout="@layout/panic_widget"
     android:minWidth="80dp"
-    android:minHeight="80dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:previewLayout="@layout/panic_widget"
+    android:previewImage="@drawable/mascot_guard"
+    android:description="@string/widget_panic_description"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen" />

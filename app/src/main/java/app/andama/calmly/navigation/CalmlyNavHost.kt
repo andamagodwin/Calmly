@@ -6,11 +6,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.remember
@@ -34,28 +37,40 @@ fun CalmlyNavHost(
     val scope = rememberCoroutineScope()
     val tracker = remember { CalmlyTracker(context) }
 
-    // Springy push/pop: screens slide in with a slight overshoot instead of the
-    // stock crossfade, matching the bouncy feel of the in-screen components.
+    // Springy push/pop with depth: the incoming screen slides in with a slight
+    // overshoot while scaling up from 92%, and the outgoing one scales down and
+    // fades rather than just sliding off — the new screen reads as arriving
+    // "above" the old one instead of the two swapping places on a flat plane.
     val bouncySlide = spring<IntOffset>(
-        dampingRatio = 0.75f,
+        dampingRatio = 0.78f,
         stiffness = Spring.StiffnessMediumLow
     )
+    val bouncyScale = spring<Float>(
+        dampingRatio = 0.7f,
+        stiffness = Spring.StiffnessMediumLow
+    )
+    val exitFade = tween<Float>(durationMillis = 220, easing = FastOutSlowInEasing)
 
     NavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier,
         enterTransition = {
-            slideInHorizontally(animationSpec = bouncySlide) { it / 3 } + fadeIn(tween(200))
+            slideInHorizontally(animationSpec = bouncySlide) { it / 4 } +
+                fadeIn(tween(320)) +
+                scaleIn(animationSpec = bouncyScale, initialScale = 0.92f)
         },
         exitTransition = {
-            slideOutHorizontally(animationSpec = bouncySlide) { -it / 4 } + fadeOut(tween(150))
+            fadeOut(exitFade) + scaleOut(animationSpec = exitFade, targetScale = 0.95f)
         },
         popEnterTransition = {
-            slideInHorizontally(animationSpec = bouncySlide) { -it / 3 } + fadeIn(tween(200))
+            slideInHorizontally(animationSpec = bouncySlide) { -it / 4 } +
+                fadeIn(tween(320)) +
+                scaleIn(animationSpec = bouncyScale, initialScale = 0.92f)
         },
         popExitTransition = {
-            slideOutHorizontally(animationSpec = bouncySlide) { it / 4 } + fadeOut(tween(150))
+            slideOutHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { it / 6 } +
+                fadeOut(exitFade)
         }
     ) {
         composable(Screen.Onboarding.route) {
@@ -160,7 +175,22 @@ fun CalmlyNavHost(
             )
         }
 
-        composable(Screen.CalmCompletion.route) {
+        // A payoff screen, not a lateral step — it reveals from the center
+        // instead of sliding in from the side, so the "you did it" moment reads
+        // as distinct from the rest of the flow's forward progress.
+        composable(
+            Screen.CalmCompletion.route,
+            enterTransition = {
+                scaleIn(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    initialScale = 0.75f
+                ) + fadeIn(tween(350))
+            },
+            exitTransition = { fadeOut(tween(200)) }
+        ) {
             CalmCompletionScreen(
                 onBackToHome = {
                     OverlayService.stopService(context)
@@ -196,7 +226,19 @@ fun CalmlyNavHost(
             )
         }
 
-        composable(Screen.UrgeComplete.route) {
+        composable(
+            Screen.UrgeComplete.route,
+            enterTransition = {
+                scaleIn(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    initialScale = 0.75f
+                ) + fadeIn(tween(350))
+            },
+            exitTransition = { fadeOut(tween(200)) }
+        ) {
             UrgeCompleteScreen(
                 onBackToHome = {
                     OverlayService.stopService(context)

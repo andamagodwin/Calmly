@@ -1,15 +1,22 @@
 package app.andama.calmly.screens
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.andama.calmly.R
+import app.andama.calmly.ui.components.CalmlyButton
+import app.andama.calmly.ui.components.EnterBounce
 import app.andama.calmly.ui.theme.*
 import kotlinx.coroutines.delay
 
@@ -28,7 +35,7 @@ fun DelayScreen(
         "10 minutes. That's all it takes to break the cycle.",
         "Your brain is lying. You don't need what it's offering.",
         "Discomfort is temporary. Regret lasts longer.",
-        "The man you want to become sits on the other side of this timer."
+        "The person you want to become sits on the other side of this timer."
     )
 
     LaunchedEffect(Unit) {
@@ -59,74 +66,84 @@ fun DelayScreen(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(32.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "Don't act. Wait.",
-                style = MaterialTheme.typography.headlineMedium,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                textAlign = TextAlign.Center
-            )
+            EnterBounce {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Image(
+                        painter = painterResource(R.drawable.mascot_meditate),
+                        contentDescription = null,
+                        modifier = Modifier.size(96.dp)
+                    )
 
-            Text(
-                text = "10 minutes of doing nothing\nwill save you from hours of regret.",
-                style = MaterialTheme.typography.titleMedium,
-                fontSize = 18.sp,
-                color = TextSecondary,
-                textAlign = TextAlign.Center,
-                lineHeight = 26.sp
-            )
+                    Spacer(Modifier.height(16.dp))
+
+                    Text(
+                        text = "Don't act. Wait.",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        text = "10 minutes of doing nothing\nwill save you from hours of regret.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            EnterBounce(delayMillis = 120) {
+                Text(
+                    text = timeDisplay,
+                    fontSize = 72.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-2).sp,
+                    color = if (timeRemaining > 60) PrimaryBlue else SuccessGreen,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Crossfade instead of a hard snap when the message rotates.
+            Crossfade(
+                targetState = currentMessageIndex,
+                animationSpec = tween(600),
+                label = "delay_message"
+            ) { index ->
+                Text(
+                    text = messages[index],
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontSize = 18.sp,
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 26.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Text(
-                text = timeDisplay,
-                style = MaterialTheme.typography.displayLarge,
-                fontSize = 72.sp,
-                fontWeight = FontWeight.Light,
-                color = if (timeRemaining > 60) PrimaryBlue else SuccessGreen,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = messages[currentMessageIndex],
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = 18.sp,
-                color = TextSecondary,
-                textAlign = TextAlign.Center,
-                lineHeight = 26.sp
-            )
-
-            Spacer(modifier = Modifier.height(48.dp))
-
             if (isTimerComplete) {
-                Button(
-                    onClick = onNext,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = SuccessGreen
-                    )
-                ) {
-                    Text(
+                EnterBounce {
+                    CalmlyButton(
                         text = "Good. Keep going.",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        containerColor = SuccessGreen,
+                        onClick = onNext
                     )
                 }
             } else {
                 Text(
                     text = "Stay here. Don't run from it.",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 14.sp,
                     color = CalmGrey,
                     textAlign = TextAlign.Center
                 )

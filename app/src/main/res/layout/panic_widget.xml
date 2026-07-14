@@ -4,34 +4,34 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="12dp"
-    android:background="#DC3545"
+    android:padding="10dp"
+    android:background="@drawable/widget_bg_panic"
     android:gravity="center">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="🚨"
-        android:textSize="32sp"
-        android:gravity="center" />
+    <ImageView
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:src="@drawable/mascot_guard"
+        android:contentDescription="Cal standing guard" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="PANIC"
-        android:textSize="18sp"
+        android:layout_marginTop="6dp"
+        android:text="LOCK ME DOWN"
+        android:textSize="13sp"
         android:textColor="#FFFFFF"
         android:textStyle="bold"
+        android:letterSpacing="0.06"
         android:gravity="center" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:text="Tap to lock"
-        android:textSize="11sp"
-        android:textColor="#FFFFFFCC"
+        android:text="one tap · 15 min"
+        android:textSize="10sp"
+        android:textColor="#FFD9DD"
         android:gravity="center" />
 
 </LinearLayout>

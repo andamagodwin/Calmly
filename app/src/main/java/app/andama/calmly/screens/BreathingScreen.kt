@@ -19,40 +19,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.andama.calmly.R
 import app.andama.calmly.ui.theme.*
-import kotlinx.coroutines.delay
 
 @Composable
 fun BreathingScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    var isBreathing by remember { mutableStateOf(true) }
     var breathText by remember { mutableStateOf("Inhale") }
-    
-    // Animation: 4s inhale, 6s exhale = 10s total cycle
-    val infiniteTransition = rememberInfiniteTransition(label = "breathing")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.5f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 4000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
-    )
-    
-    // Track breathing phase
+
+    // One driver for both the circle and the label, so they can never drift:
+    // the old version scaled 4s-up/4s-down while the text promised a 6s exhale.
+    val breathScale = remember { Animatable(1f) }
     LaunchedEffect(Unit) {
-        while (isBreathing) {
+        while (true) {
             breathText = "Inhale"
-            delay(4000)
+            breathScale.animateTo(1.5f, tween(durationMillis = 4000, easing = FastOutSlowInEasing))
             breathText = "Exhale"
-            delay(6000)
+            breathScale.animateTo(1f, tween(durationMillis = 6000, easing = FastOutSlowInEasing))
         }
     }
+    val scale = breathScale.value
     
     Box(
         modifier = Modifier

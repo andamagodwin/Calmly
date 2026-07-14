@@ -9,10 +9,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import app.andama.calmly.MainActivity
 import app.andama.calmly.R
 import app.andama.calmly.data.CalmlyTracker
 import app.andama.calmly.data.StreakInfo
+import app.andama.calmly.navigation.Screen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,6 +30,7 @@ object DailyReminders {
 
     const val ACTION_MORNING = "app.andama.calmly.REMINDER_MORNING"
     const val ACTION_EVENING = "app.andama.calmly.REMINDER_EVENING"
+    const val ACTION_LOCK_NOW = "app.andama.calmly.EVENING_LOCK_NOW"
 
     private const val MORNING_REQUEST_CODE = 300
     private const val EVENING_REQUEST_CODE = 310
@@ -112,15 +113,6 @@ object DailyReminders {
         )
     }
 
-    private fun openAppIntent(context: Context, requestCode: Int): PendingIntent =
-        PendingIntent.getActivity(
-            context, requestCode,
-            Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
     private fun notify(
         context: Context,
         channelId: String,
@@ -128,21 +120,26 @@ object DailyReminders {
         title: String,
         text: String,
         requestCode: Int,
-        highPriority: Boolean = true
+        route: String,
+        highPriority: Boolean = true,
+        actionLabel: String? = null,
+        actionIntent: PendingIntent? = null
     ) {
         ensureChannels(context)
-        val notification = NotificationCompat.Builder(context, channelId)
+        val builder = NotificationCompat.Builder(context, channelId)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(if (highPriority) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setContentIntent(openAppIntent(context, requestCode))
+            .setContentIntent(deepLinkIntent(context, route, requestCode))
             .setAutoCancel(true)
-            .build()
+        if (actionLabel != null && actionIntent != null) {
+            builder.addAction(0, actionLabel, actionIntent)
+        }
         (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-            .notify(notificationId, notification)
+            .notify(notificationId, builder.build())
     }
 
     fun showMorning(context: Context, name: String?, streak: StreakInfo) {
@@ -150,12 +147,14 @@ object DailyReminders {
 
         if (streak.days == 0) {
             // Day zero: the comeback push. This is the day the app matters most.
+            // Routes to check-in — "name what happened" is literally that screen.
             notify(
                 context, DEFENSE_CHANNEL_ID, DEFENSE_NOTIFICATION_ID,
                 "Day zero, $who.",
                 "Everyone falls. Not everyone gets back up the same morning. " +
                         "Check in, name what happened, and start the regrowth. Axolotls don't stay broken.",
-                303
+                303,
+                route = Screen.DailyCheckin.route
             )
             return
         }
@@ -166,6 +165,7 @@ object DailyReminders {
                 "Morning, $who. Day ${streak.days}.",
                 "Thirty seconds to log how you're feeling. Patterns win fights — and you're building one.",
                 301,
+                route = Screen.DailyCheckin.route,
                 highPriority = false
             )
         }
@@ -175,7 +175,8 @@ object DailyReminders {
                 context, MILESTONE_CHANNEL_ID, MILESTONE_NOTIFICATION_ID,
                 "🏆 ${streak.days} days, $who.",
                 "That's not luck — that's ${streak.days}x waking up and choosing. Cal is flexing for you. Keep the chain alive.",
-                302
+                302,
+                route = Screen.Achievements.route
             )
         }
     }
@@ -184,19 +185,44 @@ object DailyReminders {
         // Nothing to defend on day zero evenings; the morning push handles it.
         if (streak.days == 0) return
         val who = name ?: "soldier"
+
+        // The copy tells them to "hit the lock" — give them an actual button that
+        // does it, rather than a promise the notification can't keep.
+        val lockAction = PendingIntent.getBroadcast(
+            context, 305,
+            Intent(context, DailyReminderReceiver::class.java).setAction(ACTION_LOCK_NOW),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         notify(
             context, DEFENSE_CHANNEL_ID, DEFENSE_NOTIFICATION_ID,
             "Defend day ${streak.days}, $who.",
             "The day is almost banked. Evenings are where streaks go to die — " +
                     "not yours, not tonight. If it gets loud, hit the lock and let it scream at a wall.",
-            304
+            304,
+            route = Screen.Home.route,
+            actionLabel = "LOCK IT DOWN",
+            actionIntent = lockAction
         )
+    }
+
+    fun lockDownNow(context: Context) {
+        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+            .cancel(DEFENSE_NOTIFICATION_ID)
+        OverlayService.startService(context, durationMs = 15 * 60 * 1000L, mode = "urge")
     }
 }
 
 class DailyReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
+
+        // Synchronous, no tracker read needed — handle before the async branch.
+        if (action == DailyReminders.ACTION_LOCK_NOW) {
+            DailyReminders.lockDownNow(context)
+            return
+        }
+
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {

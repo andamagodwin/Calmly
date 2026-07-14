@@ -1,5 +1,6 @@
 package app.andama.calmly.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -7,10 +8,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.andama.calmly.R
+import app.andama.calmly.ui.components.EnterBounce
 import app.andama.calmly.ui.theme.*
 import kotlinx.coroutines.delay
 
@@ -56,23 +60,34 @@ fun BodyResetScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "Punish the weakness out.",
-                style = MaterialTheme.typography.headlineMedium,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                textAlign = TextAlign.Center
-            )
+            EnterBounce {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Image(
+                        painter = painterResource(R.drawable.mascot_flex),
+                        contentDescription = null,
+                        modifier = Modifier.size(96.dp)
+                    )
 
-            Text(
-                text = "Your body needs to burn off the adrenaline.\nPick something and DO IT. No half-reps.",
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = 16.sp,
-                color = TextSecondary,
-                textAlign = TextAlign.Center,
-                lineHeight = 24.sp
-            )
+                    Spacer(Modifier.height(12.dp))
+
+                    Text(
+                        text = "Burn it off.",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        text = "Your body is flooded with adrenaline.\nPick something and DO IT. No half-reps.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 

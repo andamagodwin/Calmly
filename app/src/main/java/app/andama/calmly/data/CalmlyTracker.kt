@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import app.andama.calmly.service.DangerHoursSentinel
+import app.andama.calmly.widget.WidgetUpdater
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
@@ -137,6 +138,7 @@ class CalmlyTracker(private val context: Context) {
                 prefs[TrackerKeys.CLEAN_STREAK_START] = System.currentTimeMillis()
             }
         }
+        WidgetUpdater.updateWidget(context)
     }
 
     suspend fun logRelapse(trigger: String, notes: String) {
@@ -160,6 +162,8 @@ class CalmlyTracker(private val context: Context) {
             array.put(entry)
             prefs[TrackerKeys.RELAPSE_LOG] = array.toString()
         }
+        // The home-screen widget shows this number; don't let it lie.
+        WidgetUpdater.updateWidget(context)
     }
 
     suspend fun getRelapseLog(): List<RelapseEntry> {

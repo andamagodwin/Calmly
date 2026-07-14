@@ -9,9 +9,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import app.andama.calmly.MainActivity
 import app.andama.calmly.R
 import app.andama.calmly.data.CalmlyTracker
+import app.andama.calmly.navigation.Screen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -111,13 +111,8 @@ object DangerHoursSentinel {
             )
         }
 
-        val openApp = PendingIntent.getActivity(
-            context, 201,
-            Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        // The danger banner lives on Home, so that's exactly where this should land.
+        val openApp = deepLinkIntent(context, Screen.Home.route, 201)
 
         val lockNow = PendingIntent.getBroadcast(
             context, 202,

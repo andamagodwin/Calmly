@@ -8,14 +8,18 @@ import android.content.Intent
 import android.widget.RemoteViews
 import app.andama.calmly.MainActivity
 import app.andama.calmly.R
-import app.andama.calmly.achievements.AchievementManager
-import kotlinx.coroutines.flow.first
+import app.andama.calmly.data.CalmlyTracker
+import app.andama.calmly.data.StreakInfo
 
 object WidgetUpdater {
 
-    // This used to runBlocking { collect { } } — a DataStore flow never completes,
-    // so with a widget on the home screen the call never returned and froze the
-    // completion screen's coroutine (ANR on main). Suspend and take one value.
+    /**
+     * Renders the streak widget from live tracker data. Suspend — a DataStore
+     * flow never completes, so this must never block on collect (the original
+     * implementation did exactly that and froze the caller). It also read the
+     * *session* streak from AchievementManager, which is a different number
+     * than the clean streak shown everywhere else in the app.
+     */
     suspend fun updateWidget(context: Context) {
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val appWidgetIds = appWidgetManager.getAppWidgetIds(
@@ -24,47 +28,47 @@ object WidgetUpdater {
 
         if (appWidgetIds.isEmpty()) return
 
-        val data = AchievementManager(context).achievementData.first()
+        val streak = CalmlyTracker(context).getStreakInfo()
 
         for (appWidgetId in appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId, data.totalSessions, data.currentStreak)
+            appWidgetManager.updateAppWidget(appWidgetId, buildViews(context, streak))
         }
     }
-    
-    private fun updateAppWidget(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetId: Int,
-        totalSessions: Int,
-        currentStreak: Int
-    ) {
+
+    private fun buildViews(context: Context, streak: StreakInfo): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.calmly_widget)
-        
-        // Update streak text
+
+        views.setTextViewText(R.id.widget_days, "${streak.days}")
         views.setTextViewText(
-            R.id.widget_streak,
-            "$currentStreak day${if (currentStreak != 1) "s" else ""} streak"
+            R.id.widget_days_label,
+            if (streak.days == 1) "DAY CLEAN" else "DAYS CLEAN"
         )
-        
-        // Update sessions text
+
+        val next = streak.nextMilestone
         views.setTextViewText(
-            R.id.widget_sessions,
-            "$totalSessions session${if (totalSessions != 1) "s" else ""}"
+            R.id.widget_milestone,
+            when {
+                next == null -> "every milestone cleared 🏆"
+                next - streak.days == 1 -> "${next}-day milestone tomorrow"
+                else -> "${next}-day milestone in ${next - streak.days} days"
+            }
         )
-        
-        // Create intent to launch MainActivity
+        views.setProgressBar(
+            R.id.widget_progress, 100,
+            (streak.milestoneProgress * 100).toInt(), false
+        )
+
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        views.setOnClickPendingIntent(
+            R.id.widget_root,
+            PendingIntent.getActivity(
+                context, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
         )
-        
-        views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
-        
-        appWidgetManager.updateAppWidget(appWidgetId, views)
+
+        return views
     }
 }

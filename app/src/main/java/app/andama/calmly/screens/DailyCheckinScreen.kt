@@ -1,5 +1,6 @@
 package app.andama.calmly.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,11 +13,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.andama.calmly.R
 import app.andama.calmly.data.CalmlyTracker
+import app.andama.calmly.ui.components.EnterBounce
 import app.andama.calmly.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -60,14 +64,25 @@ fun DailyCheckinScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "Daily Check-In",
-                style = MaterialTheme.typography.headlineMedium,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                textAlign = TextAlign.Center
-            )
+            EnterBounce {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Image(
+                        painter = painterResource(R.drawable.mascot_writing),
+                        contentDescription = null,
+                        modifier = Modifier.size(96.dp)
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    Text(
+                        text = "Daily Check-In",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
 
             Card(
                 modifier = Modifier.fillMaxWidth(),

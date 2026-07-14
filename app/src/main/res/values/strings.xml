@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Calmly</string>
+    <string name="widget_streak_description">Your clean streak and next milestone, with Cal keeping watch.</string>
+    <string name="widget_panic_description">One tap locks your phone down for 15 minutes when an urge hits.</string>
 </resources>

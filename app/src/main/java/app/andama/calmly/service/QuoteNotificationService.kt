@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import app.andama.calmly.R
+import app.andama.calmly.navigation.Screen
 import kotlin.random.Random
 
 class QuoteReceiver : BroadcastReceiver() {
@@ -73,16 +74,21 @@ fun showQuoteNotification(context: Context) {
     }
 
     val quote = brutalQuotes[Random.nextInt(brutalQuotes.size)]
+    val requestCode = Random.nextInt(10000)
 
+    // This never had a contentIntent at all — tapping it just dismissed the
+    // notification and did nothing else. Every other notification in the app
+    // opens something; this one silently didn't.
     val notification = NotificationCompat.Builder(context, channelId)
         .setContentTitle("Calmly")
         .setContentText(quote)
         .setStyle(NotificationCompat.BigTextStyle().bigText(quote))
         .setSmallIcon(R.drawable.ic_launcher_foreground)
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        .setContentIntent(deepLinkIntent(context, Screen.Home.route, requestCode))
         .setAutoCancel(true)
         .build()
 
     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    notificationManager.notify(Random.nextInt(10000), notification)
+    notificationManager.notify(requestCode, notification)
 }

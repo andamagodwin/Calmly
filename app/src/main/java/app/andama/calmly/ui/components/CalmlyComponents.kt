@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -308,6 +309,13 @@ fun StreakRing(
         label = "ring"
     )
 
+    // The day count rolls up to its value in step with the ring sweep.
+    val animatedDays by animateIntAsState(
+        targetValue = days,
+        animationSpec = tween(durationMillis = 900),
+        label = "days"
+    )
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -348,7 +356,7 @@ fun StreakRing(
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "$days",
+                text = "$animatedDays",
                 fontSize = 64.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-2).sp,

@@ -1,5 +1,6 @@
 package app.andama.calmly.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -7,10 +8,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.andama.calmly.R
+import app.andama.calmly.ui.components.CalmlyButton
+import app.andama.calmly.ui.components.EnterBounce
 import app.andama.calmly.ui.theme.*
 
 @Composable
@@ -33,23 +38,34 @@ fun ThoughtDumpScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "Get it out of your head.",
-                style = MaterialTheme.typography.headlineMedium,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                textAlign = TextAlign.Center
-            )
+            EnterBounce {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Image(
+                        painter = painterResource(R.drawable.mascot_writing),
+                        contentDescription = null,
+                        modifier = Modifier.size(96.dp)
+                    )
 
-            Text(
-                text = "Write what triggered you. What you're feeling.\nThis never gets stored or sent anywhere.",
-                style = MaterialTheme.typography.bodyLarge,
-                fontSize = 16.sp,
-                color = TextSecondary,
-                textAlign = TextAlign.Center,
-                lineHeight = 24.sp
-            )
+                    Spacer(Modifier.height(12.dp))
+
+                    Text(
+                        text = "Get it out of your head.",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        text = "Write what triggered you. What you're feeling.\nThis never gets stored or sent anywhere.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -101,25 +117,11 @@ fun ThoughtDumpScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
-                onClick = onNext,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+            CalmlyButton(
+                text = "Done. Move on.",
                 enabled = hasWrittenEnough,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryBlue,
-                    disabledContainerColor = CalmGrey
-                )
-            ) {
-                Text(
-                    text = "Done. Move on.",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-            }
+                onClick = onNext
+            )
         }
     }
 }
