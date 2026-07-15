@@ -95,7 +95,7 @@ fun UrgeHitScreen(
             EnterBounce {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Image(
-                        painter = painterResource(R.drawable.mascot_guard),
+                        painter = painterResource(R.drawable.mascot_point),
                         contentDescription = "Cal standing guard",
                         modifier = Modifier.size(104.dp)
                     )

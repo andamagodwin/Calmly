@@ -38,13 +38,18 @@ import java.util.Locale
 object DangerHoursSentinel {
 
     const val ACTION_WINDOW_OPEN = "app.andama.calmly.DANGER_WINDOW_OPEN"
+    const val ACTION_WINDOW_CLOSE = "app.andama.calmly.DANGER_WINDOW_CLOSE"
     const val ACTION_LOCK_NOW = "app.andama.calmly.DANGER_LOCK_NOW"
     const val ACTION_PATROL = "app.andama.calmly.DANGER_PATROL"
 
     private const val REQUEST_CODE = 200
     private const val PATROL_REQUEST_CODE = 210
+    private const val CLOSE_REQUEST_CODE = 220
     private const val NOTIFICATION_ID = 2001
     private const val PATROL_NOTIFICATION_ID = 2002
+
+    /** A fall this long before the window opened makes surviving it a comeback. */
+    private const val COMEBACK_LOOKBACK_MS = 36 * 60 * 60 * 1000L
     private const val CHANNEL_ID = "calmly_danger_channel"
     private const val PATROL_CHANNEL_ID = "calmly_patrol_channel"
     private const val LOCK_DURATION_MS = 30 * 60 * 1000L
@@ -65,10 +70,69 @@ object DangerHoursSentinel {
 
         // If we're already inside the window — the user just switched the feature
         // on at 23:30, or the phone rebooted at 1am — start patrolling now rather
-        // than leaving them unwatched until tomorrow night.
+        // than leaving them unwatched until tomorrow night, and make sure the
+        // close alarm that scores the night is armed.
         if (tracker.isInDangerHours()) {
             schedulePatrol(context, delayMs = 60_000L)
+            scheduleClose(context, dangerHours.first, dangerHours.second)
         }
+    }
+
+    /**
+     * Arms the alarm that scores the night the moment the window shuts. Fired once
+     * per window; the receiver decides whether it was defended.
+     */
+    private fun scheduleClose(context: Context, startHour: Int, endHour: Int) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val monitor = ScreenTimeMonitor(context)
+        val windowStart = monitor.windowStartMillis(startHour)
+        val durationHours = ((endHour - startHour + 24) % 24).let { if (it == 0) 24 else it }
+        var closeAt = windowStart + durationHours * 60L * 60L * 1000L
+        // windowStartMillis can return the window that already closed; push to the
+        // next night's close so the alarm is always in the future.
+        while (closeAt <= System.currentTimeMillis()) closeAt += 24L * 60 * 60 * 1000L
+
+        val pending = closePendingIntent(context)
+        val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                alarmManager.canScheduleExactAlarms()
+        if (canExact) {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, closeAt, pending)
+        } else {
+            alarmManager.setWindow(AlarmManager.RTC_WAKEUP, closeAt, 10 * 60 * 1000L, pending)
+        }
+    }
+
+    private fun closePendingIntent(context: Context): PendingIntent =
+        PendingIntent.getBroadcast(
+            context, CLOSE_REQUEST_CODE,
+            Intent(context, DangerHoursReceiver::class.java).setAction(ACTION_WINDOW_CLOSE),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+    /**
+     * Scores the night that just ended. If no relapse landed inside the window,
+     * the user rode it out — record it, and flag it a comeback if they'd fallen
+     * in the day and a half before it opened. This is what turns "get through the
+     * hour that usually gets you" into something the widget can celebrate.
+     */
+    suspend fun onWindowClosed(context: Context) {
+        cancelPatrol(context)
+        val tracker = CalmlyTracker(context)
+        val dangerHours = tracker.getDangerHours() ?: return
+        if (!dangerHours.third) return
+
+        val monitor = ScreenTimeMonitor(context)
+        val windowStart = monitor.windowStartMillis(dangerHours.first)
+        val durationHours = ((dangerHours.second - dangerHours.first + 24) % 24)
+            .let { if (it == 0) 24 else it }
+        val windowEnd = windowStart + durationHours * 60L * 60L * 1000L
+
+        val relapses = tracker.getRelapseTimestamps()
+        val fellInsideWindow = relapses.any { it in windowStart..windowEnd }
+        if (fellInsideWindow) return  // nothing to celebrate
+
+        val comeback = relapses.any { it in (windowStart - COMEBACK_LOOKBACK_MS) until windowStart }
+        tracker.recordWindowDefended(comeback)
     }
 
     private fun scheduleNext(context: Context, startHour: Int) {
@@ -270,7 +334,12 @@ object DangerHoursSentinel {
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setLargeIcon(CalIcon.face(context, mood))
+            // Deep into the window Cal stops being merely worried and gets angry
+            // at what's happening; the earlier levels keep the escalating mood face.
+            .setLargeIcon(
+                if (level >= 3) CalIcon.face(context, R.drawable.face_angry)
+                else CalIcon.face(context, mood)
+            )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(deepLinkIntent(context, Screen.Home.route, 211))
@@ -333,7 +402,9 @@ object DangerHoursSentinel {
                 )
             )
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setLargeIcon(CalIcon.face(context, mood))
+            // The window opening is a jolt, so Cal arrives wide-eyed — the mood
+            // param still drives everything downstream, this is just the face.
+            .setLargeIcon(CalIcon.face(context, R.drawable.face_shocked))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(openApp)
@@ -379,6 +450,17 @@ class DangerHoursReceiver : BroadcastReceiver() {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         DangerHoursSentinel.runPatrol(context)
+                    } finally {
+                        pending.finish()
+                    }
+                }
+            }
+
+            DangerHoursSentinel.ACTION_WINDOW_CLOSE -> {
+                val pending = goAsync()
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        DangerHoursSentinel.onWindowClosed(context)
                     } finally {
                         pending.finish()
                     }

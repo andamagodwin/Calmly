@@ -34,7 +34,11 @@ data class CalState(
     val inDangerWindow: Boolean = false,
     /** 0-3, from [ScreenTimeInsights.escalationLevel]. Only meaningful in the window. */
     val escalation: Int = 0,
-    val isRestless: Boolean = false
+    val isRestless: Boolean = false,
+    /** A danger window was ridden out clean within the last day. */
+    val defendedWindowRecently: Boolean = false,
+    /** That defended window followed a recent fall — the redemption case. */
+    val comeback: Boolean = false
 ) {
     val isMilestoneDay: Boolean get() = cleanDays in StreakInfo.MILESTONES
 }
@@ -65,6 +69,10 @@ object Cal {
         state.inDangerWindow && state.escalation >= 1 -> CalMood.STRUGGLING
         state.inDangerWindow -> CalMood.FIERCE
 
+        // The morning after riding a window out clean — proudest he gets, and
+        // proudest of all when it was a comeback from a recent fall.
+        state.defendedWindowRecently -> CalMood.FIERCE
+
         state.isRestless -> CalMood.STRUGGLING
         state.isMilestoneDay -> CalMood.HAPPY
         state.cleanDays >= HARDENED_DAYS -> CalMood.FIERCE
@@ -88,6 +96,8 @@ object CalVoice {
     fun widgetLine(mood: CalMood, state: CalState): String = when {
         state.inDangerWindow && state.escalation >= 2 -> "put it down"
         state.inDangerWindow -> "on watch"
+        state.comeback -> "you're back"
+        state.defendedWindowRecently -> "you beat it"
         state.cleanDays == 0 && state.hoursIntoDay < Cal.FRESH_FALL_HOURS -> "still here"
         state.cleanDays == 0 -> "get back up"
         !state.checkedInToday -> "check in?"

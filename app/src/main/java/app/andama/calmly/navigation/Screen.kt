@@ -21,4 +21,5 @@ sealed class Screen(val route: String) {
     object DangerHours : Screen("danger_hours")
     object Partner : Screen("partner")
     object Patterns : Screen("patterns")
+    object AppLock : Screen("app_lock")
 }

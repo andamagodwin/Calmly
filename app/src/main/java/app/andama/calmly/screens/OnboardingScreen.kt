@@ -43,7 +43,7 @@ fun OnboardingScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Image(
-                    painter = painterResource(R.drawable.mascot_idle),
+                    painter = painterResource(R.drawable.mascot_peek),
                     contentDescription = "Cal the axolotl waving hello",
                     modifier = Modifier.size(180.dp)
                 )

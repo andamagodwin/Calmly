@@ -17,43 +17,45 @@ val Nunito = FontFamily(
     Font(R.font.nunito_extrabold, FontWeight.ExtraBold)
 )
 
-// Nunito is naturally round and slightly wide, so the display sizes need less
-// negative tracking than a grotesque would; big numbers still read as one shape.
+// Headings are plain bold Nunito with no tracking — the rounded face already
+// reads as one shape, and any letter-spacing on it looked like a deliberate
+// style the app didn't want. Body and the small caps labels keep a hair of
+// tracking for legibility; the headings get exactly zero.
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = Nunito,
         fontWeight = FontWeight.ExtraBold,
         fontSize = 57.sp,
         lineHeight = 62.sp,
-        letterSpacing = (-1).sp
+        letterSpacing = 0.sp
     ),
     displayMedium = TextStyle(
         fontFamily = Nunito,
         fontWeight = FontWeight.ExtraBold,
         fontSize = 45.sp,
         lineHeight = 50.sp,
-        letterSpacing = (-0.5).sp
+        letterSpacing = 0.sp
     ),
     displaySmall = TextStyle(
         fontFamily = Nunito,
         fontWeight = FontWeight.Bold,
         fontSize = 36.sp,
         lineHeight = 42.sp,
-        letterSpacing = (-0.3).sp
+        letterSpacing = 0.sp
     ),
     headlineLarge = TextStyle(
         fontFamily = Nunito,
         fontWeight = FontWeight.Bold,
         fontSize = 32.sp,
         lineHeight = 38.sp,
-        letterSpacing = (-0.3).sp
+        letterSpacing = 0.sp
     ),
     headlineMedium = TextStyle(
         fontFamily = Nunito,
         fontWeight = FontWeight.Bold,
         fontSize = 26.sp,
         lineHeight = 32.sp,
-        letterSpacing = (-0.2).sp
+        letterSpacing = 0.sp
     ),
     headlineSmall = TextStyle(
         fontFamily = Nunito,
@@ -118,12 +120,14 @@ val Typography = Typography(
         lineHeight = 17.sp,
         letterSpacing = 0.3.sp
     ),
-    // Used for the small all-caps section headers.
+    // The small all-caps section headers. Caps need a touch of tracking to stay
+    // legible, but the old 1.2sp read as a deliberate "spaced out" style; 0.4 is
+    // the minimum that keeps them from looking cramped.
     labelSmall = TextStyle(
         fontFamily = Nunito,
         fontWeight = FontWeight.Bold,
         fontSize = 11.sp,
         lineHeight = 15.sp,
-        letterSpacing = 1.2.sp
+        letterSpacing = 0.4.sp
     )
 )

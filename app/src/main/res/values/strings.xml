@@ -2,4 +2,6 @@
     <string name="app_name">Calmly</string>
     <string name="widget_streak_description">Your clean streak and next milestone, with Cal keeping watch.</string>
     <string name="widget_panic_description">One tap locks your phone down for 15 minutes when an urge hits.</string>
+    <string name="app_blocker_description">Lets Calmly close apps you\'ve chosen to block the instant they open — the enforcement behind App Lock. Calmly reads only which app came to the foreground, never anything on your screen.</string>
+    <string name="app_blocker_summary">Slams your blocked apps shut so a moment of weakness can\'t become a relapse.</string>
 </resources>

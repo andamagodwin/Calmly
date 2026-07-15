@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import androidx.annotation.DrawableRes
 import androidx.core.content.ContextCompat
 import app.andama.calmly.data.CalMood
 import app.andama.calmly.ui.faceRes
@@ -23,8 +24,15 @@ object CalIcon {
     private const val SIZE_PX = 256
     private const val BACKDROP = 0xFF2A2046.toInt() // ElevatedBackground
 
-    fun face(context: Context, mood: CalMood): Bitmap? {
-        val drawable = ContextCompat.getDrawable(context, mood.faceRes) ?: return null
+    fun face(context: Context, mood: CalMood): Bitmap? = face(context, mood.faceRes)
+
+    /**
+     * Same treatment, but for one of Cal's expanded expressions that live outside
+     * the 5-face mood engine (anxious, sleepy, excited…). Notifications reach for
+     * these directly when the event has a sharper feeling than the mood alone.
+     */
+    fun face(context: Context, @DrawableRes faceRes: Int): Bitmap? {
+        val drawable = ContextCompat.getDrawable(context, faceRes) ?: return null
         val bitmap = Bitmap.createBitmap(SIZE_PX, SIZE_PX, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 

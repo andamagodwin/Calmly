@@ -172,7 +172,7 @@ private fun ColumnScope.PermissionGate(onGrant: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Image(
-                painter = painterResource(R.drawable.mascot_writing),
+                painter = painterResource(R.drawable.mascot_read),
                 contentDescription = null,
                 modifier = Modifier.size(140.dp)
             )
@@ -475,7 +475,12 @@ private fun AppUsageRow(
     val context = LocalContext.current
     val icon = remember(app.packageName) {
         runCatching {
-            context.packageManager.getApplicationIcon(app.packageName).toBitmap().asImageBitmap()
+            val drawable = context.packageManager.getApplicationIcon(app.packageName)
+            // Adaptive icons report an intrinsic size, but some legacy/system
+            // drawables report -1; toBitmap() then throws. Give it a fixed size
+            // so every icon renders instead of silently falling back to a blank.
+            val px = (48 * context.resources.displayMetrics.density).toInt().coerceAtLeast(1)
+            drawable.toBitmap(width = px, height = px).asImageBitmap()
         }.getOrNull()
     }
 

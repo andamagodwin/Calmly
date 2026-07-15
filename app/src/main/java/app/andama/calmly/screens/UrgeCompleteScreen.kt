@@ -85,7 +85,7 @@ fun UrgeCompleteScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(R.drawable.mascot_flex),
+                    painter = painterResource(R.drawable.mascot_run),
                     contentDescription = "Cal flexing — you beat the urge",
                     modifier = Modifier.size(104.dp)
                 )

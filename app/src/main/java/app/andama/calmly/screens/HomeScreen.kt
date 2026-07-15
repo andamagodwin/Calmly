@@ -40,7 +40,8 @@ fun HomeScreen(
     onDangerHoursClick: () -> Unit,
     onPartnerClick: () -> Unit,
     onAchievementsClick: () -> Unit,
-    onPatternsClick: () -> Unit
+    onPatternsClick: () -> Unit,
+    onAppLockClick: () -> Unit
 ) {
     val context = LocalContext.current
     val tracker = remember { CalmlyTracker(context) }
@@ -318,6 +319,19 @@ fun HomeScreen(
                 title = "Reset Log",
                 subtitle = "Learn, don't shame",
                 onClick = onRelapseClick
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // The flagship enforcement feature earns a full-width, unmissable CTA
+        // rather than another half-tile in the grid.
+        EnterBounce(delayMillis = 280) {
+            GradientActionButton(
+                title = "App Lock",
+                subtitle = "Let Cal slam your worst apps shut",
+                gradient = listOf(DangerRed, BrutalOrange),
+                onClick = onAppLockClick
             )
         }
             }

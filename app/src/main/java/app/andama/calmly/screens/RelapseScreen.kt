@@ -61,7 +61,7 @@ fun RelapseScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Image(
-                painter = painterResource(R.drawable.mascot_comfort),
+                painter = painterResource(R.drawable.mascot_cry),
                 contentDescription = "Cal offering a hug — a reset is not the end",
                 modifier = Modifier.size(110.dp)
             )

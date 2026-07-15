@@ -19,11 +19,20 @@
     <uses-permission android:name="android.permission.SEND_SMS" />
 
     <!-- Special permission: not requestable inline, the user grants it in system
-         settings. Calmly reads only screen on/off and unlock events from it —
-         never which apps are used. See ScreenTimeMonitor. -->
+         settings. Feeds both the screen-time patterns and the danger-window
+         patrol; see ScreenTimeMonitor. -->
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
+
+    <!-- App visibility (Android 11+). Without it getApplicationIcon/Label throw
+         NameNotFoundException for apps not otherwise visible, which is why the
+         "what kept you up" rows rendered without icons. Also required to list
+         installed apps for the app-lock picker, and to name blocked packages.
+         Play-restricted if ever published, but this is a personal build. -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
@@ -135,6 +144,34 @@
             android:name=".service.DailyReminderReceiver"
             android:enabled="true"
             android:exported="false" />
+
+        <!-- The enforcement arm. The system re-enables this after reboot once the
+             user has granted it, so App Lock keeps working across restarts with no
+             extra wiring. Reads only the foreground package name, never content. -->
+        <service
+            android:name=".service.AppBlockerService"
+            android:enabled="true"
+            android:exported="false"
+            android:label="Calmly App Lock"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/app_blocker_config" />
+        </service>
+
+        <activity
+            android:name=".block.BlockActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.Calmly" />
     </application>
 
 </manifest>

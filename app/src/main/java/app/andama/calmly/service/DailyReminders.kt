@@ -154,17 +154,22 @@ object DailyReminders {
         requestCode: Int,
         route: String,
         mood: CalMood,
+        @androidx.annotation.DrawableRes faceRes: Int? = null,
         highPriority: Boolean = true,
         actionLabel: String? = null,
         actionIntent: PendingIntent? = null
     ) {
         ensureChannels(context)
+        // A specific expression (excited on a milestone, sleepy on the night
+        // debrief) beats the generic mood face when the moment has a clear feeling.
+        val icon = if (faceRes != null) CalIcon.face(context, faceRes)
+                   else CalIcon.face(context, mood)
         val builder = NotificationCompat.Builder(context, channelId)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setLargeIcon(CalIcon.face(context, mood))
+            .setLargeIcon(icon)
             .setPriority(if (highPriority) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(deepLinkIntent(context, route, requestCode))
@@ -212,6 +217,7 @@ object DailyReminders {
                 301,
                 route = Screen.DailyCheckin.route,
                 mood = mood,
+                faceRes = R.drawable.face_shy,
                 highPriority = false
             )
         }
@@ -220,10 +226,11 @@ object DailyReminders {
             notify(
                 context, MILESTONE_CHANNEL_ID, MILESTONE_NOTIFICATION_ID,
                 "🏆 ${streak.days} days, $who.",
-                "That's not luck — that's ${streak.days}x waking up and choosing. Cal is flexing for you. Keep the chain alive.",
+                "That's not luck — that's ${streak.days}x waking up and choosing. Cal is buzzing for you. Keep the chain alive.",
                 302,
                 route = Screen.Achievements.route,
-                mood = CalMood.HAPPY
+                mood = CalMood.HAPPY,
+                faceRes = R.drawable.face_excited
             )
         }
     }
@@ -246,6 +253,7 @@ object DailyReminders {
             306,
             route = Screen.Patterns.route,
             mood = CalMood.STRUGGLING,
+            faceRes = R.drawable.face_sleepy,
             highPriority = false
         )
     }
@@ -271,7 +279,8 @@ object DailyReminders {
                         "do. Give it something else. Two minutes of breathing beats two hours of regret.",
                 307,
                 route = Screen.Breathing.route,
-                mood = CalMood.STRUGGLING
+                mood = CalMood.STRUGGLING,
+                faceRes = R.drawable.face_anxious
             )
             return
         }
@@ -309,6 +318,7 @@ object DailyReminders {
             304,
             route = Screen.Home.route,
             mood = mood,
+            faceRes = R.drawable.face_smug,
             actionLabel = "LOCK IT DOWN",
             actionIntent = lockAction
         )

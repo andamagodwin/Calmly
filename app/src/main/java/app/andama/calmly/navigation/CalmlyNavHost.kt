@@ -116,7 +116,8 @@ fun CalmlyNavHost(
                 onDangerHoursClick = { navController.navigate(Screen.DangerHours.route) },
                 onPartnerClick = { navController.navigate(Screen.Partner.route) },
                 onAchievementsClick = { navController.navigate(Screen.Achievements.route) },
-                onPatternsClick = { navController.navigate(Screen.Patterns.route) }
+                onPatternsClick = { navController.navigate(Screen.Patterns.route) },
+                onAppLockClick = { navController.navigate(Screen.AppLock.route) }
             )
         }
 
@@ -286,6 +287,12 @@ fun CalmlyNavHost(
 
         composable(Screen.Patterns.route) {
             PatternsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.AppLock.route) {
+            AppLockScreen(
                 onBack = { navController.popBackStack() }
             )
         }

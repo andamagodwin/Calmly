@@ -36,6 +36,10 @@ object TrackerKeys {
     val USER_NAME = stringPreferencesKey("user_name")
     val PATROL_LEVEL = intPreferencesKey("patrol_level")
     val PATROL_NIGHT = stringPreferencesKey("patrol_night")
+    val WINDOWS_DEFENDED = intPreferencesKey("windows_defended")
+    val LAST_DEFENDED_AT = longPreferencesKey("last_defended_at")
+    val LAST_DEFENDED_COMEBACK = stringPreferencesKey("last_defended_comeback")
+    val BLOCKED_PACKAGES = stringPreferencesKey("blocked_packages")
 }
 
 data class MoodEntry(
@@ -375,19 +379,99 @@ class CalmlyTracker(private val context: Context) {
      * have insights on hand should fold it in with `copy(isRestless = ...)`.
      */
     suspend fun getCalState(): CalState {
-        val streak = getStreakInfo()
+        val prefs = context.trackerDataStore.data.first()
+        val elapsed = elapsedMillis(prefs[TrackerKeys.CLEAN_STREAK_START])
+        val streak = StreakInfo(
+            days = (elapsed / DAY_MS).toInt(),
+            hours = ((elapsed % DAY_MS) / HOUR_MS).toInt(),
+            longest = 0,
+            totalRelapses = 0,
+            checkedInToday = prefs[TrackerKeys.LAST_CHECKIN_DATE] == dateFormat.format(Date())
+        )
         val inWindow = isInDangerHours()
+
+        // A defended window is only celebration-worthy for the daylight after it —
+        // and never while a fresh window is open, when the point is still to be
+        // watchful, not proud.
+        val defendedAt = prefs[TrackerKeys.LAST_DEFENDED_AT] ?: 0L
+        val defendedRecently = !inWindow &&
+            defendedAt > 0L &&
+            System.currentTimeMillis() - defendedAt < DEFENDED_SHOW_MS
+
         return CalState(
             cleanDays = streak.days,
             hoursIntoDay = streak.hours,
             checkedInToday = streak.checkedInToday,
             inDangerWindow = inWindow,
-            escalation = if (inWindow) getCurrentPatrolLevel() else 0
+            escalation = if (inWindow) getCurrentPatrolLevel() else 0,
+            defendedWindowRecently = defendedRecently,
+            comeback = defendedRecently && prefs[TrackerKeys.LAST_DEFENDED_COMEBACK] == "true"
         )
+    }
+
+    /** Number of danger windows the user has ridden out clean. */
+    suspend fun getWindowsDefended(): Int =
+        context.trackerDataStore.data.map { it[TrackerKeys.WINDOWS_DEFENDED] ?: 0 }.first()
+
+    /**
+     * Relapse instants as epoch millis, for asking "did a relapse happen inside
+     * this window?" The log stores "yyyy-MM-dd HH:mm"; anything unparseable is
+     * dropped rather than crashing the window-close check.
+     */
+    suspend fun getRelapseTimestamps(): List<Long> {
+        val logJson = context.trackerDataStore.data.map { it[TrackerKeys.RELAPSE_LOG] ?: "[]" }.first()
+        val array = JSONArray(logJson)
+        val out = mutableListOf<Long>()
+        for (i in 0 until array.length()) {
+            val raw = array.getJSONObject(i).optString("date")
+            runCatching { dateTimeFormat.parse(raw)?.time }.getOrNull()?.let { out.add(it) }
+        }
+        return out
+    }
+
+    /**
+     * Records that a danger window just closed with no relapse inside it.
+     * [comeback] means they'd fallen recently and still held this one — the
+     * redemption case worth shouting about on the widget.
+     */
+    suspend fun recordWindowDefended(comeback: Boolean) {
+        context.trackerDataStore.edit { prefs ->
+            prefs[TrackerKeys.WINDOWS_DEFENDED] = (prefs[TrackerKeys.WINDOWS_DEFENDED] ?: 0) + 1
+            prefs[TrackerKeys.LAST_DEFENDED_AT] = System.currentTimeMillis()
+            prefs[TrackerKeys.LAST_DEFENDED_COMEBACK] = if (comeback) "true" else "false"
+        }
+        WidgetUpdater.updateWidget(context)
+    }
+
+    // --- App lock -------------------------------------------------------------
+
+    /** Package names the accessibility service should slam shut. */
+    suspend fun getBlockedPackages(): Set<String> = parsePackages(
+        context.trackerDataStore.data.map { it[TrackerKeys.BLOCKED_PACKAGES] ?: "[]" }.first()
+    )
+
+    /** Live view for the accessibility service, which stays running and must see edits at once. */
+    val blockedPackagesFlow: kotlinx.coroutines.flow.Flow<Set<String>>
+        get() = context.trackerDataStore.data.map { parsePackages(it[TrackerKeys.BLOCKED_PACKAGES] ?: "[]") }
+
+    suspend fun setBlockedPackages(packages: Set<String>) {
+        val array = JSONArray()
+        packages.forEach { array.put(it) }
+        context.trackerDataStore.edit { prefs ->
+            prefs[TrackerKeys.BLOCKED_PACKAGES] = array.toString()
+        }
+    }
+
+    private fun parsePackages(json: String): Set<String> {
+        val array = JSONArray(json)
+        return buildSet { for (i in 0 until array.length()) add(array.getString(i)) }
     }
 
     companion object {
         private const val HOUR_MS = 60 * 60 * 1000L
         private const val DAY_MS = 24 * HOUR_MS
+
+        /** How long a defended window stays celebrated on the widget — one day. */
+        private const val DEFENDED_SHOW_MS = 18 * HOUR_MS
     }
 }

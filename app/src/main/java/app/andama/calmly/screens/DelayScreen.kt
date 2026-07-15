@@ -72,7 +72,7 @@ fun DelayScreen(
             EnterBounce {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Image(
-                        painter = painterResource(R.drawable.mascot_meditate),
+                        painter = painterResource(R.drawable.mascot_think),
                         contentDescription = null,
                         modifier = Modifier.size(96.dp)
                     )

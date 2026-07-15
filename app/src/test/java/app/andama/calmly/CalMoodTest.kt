@@ -75,6 +75,45 @@ class CalMoodTest {
         assertEquals(CalMood.HAPPY, face)
     }
 
+    // --- the comeback ---
+
+    @Test
+    fun `riding out a window clean is his proudest face`() {
+        val face = Cal.face(CalState(cleanDays = 1, defendedWindowRecently = true))
+        assertEquals(CalMood.FIERCE, face)
+    }
+
+    @Test
+    fun `a defended window still celebrates over a merely restless day`() {
+        // The redemption beat outranks the ordinary restlessness warning.
+        val face = Cal.face(
+            CalState(cleanDays = 1, defendedWindowRecently = true, comeback = true, isRestless = true)
+        )
+        assertEquals(CalMood.FIERCE, face)
+    }
+
+    @Test
+    fun `an open window still wins over a past defended one`() {
+        // If a new window is open, watchfulness beats yesterday's victory lap.
+        val face = Cal.face(
+            CalState(
+                cleanDays = 1,
+                inDangerWindow = true,
+                escalation = 2,
+                defendedWindowRecently = true
+            )
+        )
+        assertEquals(CalMood.SAD, face)
+    }
+
+    @Test
+    fun `the comeback line is shown only when it was a comeback`() {
+        val comeback = CalState(cleanDays = 1, defendedWindowRecently = true, comeback = true)
+        val plain = CalState(cleanDays = 8, defendedWindowRecently = true, comeback = false)
+        assertEquals("you're back", CalVoice.widgetLine(Cal.face(comeback), comeback))
+        assertEquals("you beat it", CalVoice.widgetLine(Cal.face(plain), plain))
+    }
+
     // --- the ordinary days ---
 
     @Test
@@ -115,7 +154,9 @@ class CalMoodTest {
             CalState(cleanDays = 12, checkedInToday = false),
             CalState(cleanDays = 5, checkedInToday = true, inDangerWindow = true),
             CalState(cleanDays = 5, checkedInToday = true, inDangerWindow = true, escalation = 2),
-            CalState(cleanDays = 5, checkedInToday = true, isRestless = true)
+            CalState(cleanDays = 5, checkedInToday = true, isRestless = true),
+            CalState(cleanDays = 1, defendedWindowRecently = true, comeback = true),
+            CalState(cleanDays = 8, defendedWindowRecently = true, comeback = false)
         )
         states.forEach { state ->
             val line = CalVoice.widgetLine(Cal.face(state), state)

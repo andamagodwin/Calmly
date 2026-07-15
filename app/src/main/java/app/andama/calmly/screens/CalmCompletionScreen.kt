@@ -84,7 +84,7 @@ fun CalmCompletionScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(R.drawable.mascot_celebrate),
+                        painter = painterResource(R.drawable.mascot_love),
                         contentDescription = "Cal celebrating — you stayed calm",
                         modifier = Modifier.size(104.dp)
                     )
